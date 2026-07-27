@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const registry = new Map();
@@ -123,4 +125,22 @@ test("renders the bundled custom bottle header icon", () => {
 
   assert.match(card.shadowRoot.innerHTML, /class="header-icon"/);
   assert.doesNotMatch(card.shadowRoot.innerHTML, /mdi:bottle-tonic-outline/);
+});
+
+test("avoids JavaScript features missing from older Silk runtimes", () => {
+  const source = fs.readFileSync(
+    path.join(
+      __dirname,
+      "../../custom_components/proof86/frontend/proof86-card.js",
+    ),
+    "utf8",
+  );
+
+  assert.doesNotMatch(source, /\basync\s+[_a-z]/);
+  assert.doesNotMatch(source, /\bawait\b/);
+  assert.doesNotMatch(source, /\.includes\(/);
+  assert.doesNotMatch(source, /\.replaceAll\(/);
+  assert.doesNotMatch(source, /\?\./);
+  assert.doesNotMatch(source, /\?\?/);
+  assert.doesNotMatch(source, /,\s*\)/);
 });

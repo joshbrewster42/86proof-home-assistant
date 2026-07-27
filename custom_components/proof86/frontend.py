@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 
 STATIC_URL = "/proof86_static"
 CARD_FILENAME = "proof86-card.js"
-CARD_VERSION = "0.3.1"
+CARD_VERSION = "0.3.2"
 CARD_URL = f"{STATIC_URL}/{CARD_FILENAME}?v={CARD_VERSION}"
 
 

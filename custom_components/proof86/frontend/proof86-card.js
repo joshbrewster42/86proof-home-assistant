@@ -229,7 +229,7 @@ class Proof86InventoryCard extends HTMLElement {
 
   setConfig(config) {
     const maxHeight = Number(
-      config.max_height == null ? 640 : config.max_height,
+      config.max_height == null ? 640 : config.max_height
     );
     this._config = Object.assign(
       {
@@ -245,14 +245,14 @@ class Proof86InventoryCard extends HTMLElement {
       config,
       {
         max_height: Math.max(320, Math.min(1200, maxHeight || 640)),
-      },
+      }
     );
     this._sort = [
       "name-asc",
       "name-desc",
       "fullness-desc",
       "fullness-asc",
-    ].includes(this._config.sort)
+    ].indexOf(this._config.sort) !== -1
       ? this._config.sort
       : "name-asc";
     if (!this._config.show_search) this._query = "";
@@ -299,7 +299,7 @@ class Proof86InventoryCard extends HTMLElement {
     };
   }
 
-  async _ensureSubscription() {
+  _ensureSubscription() {
     if (
       !this.isConnected ||
       !this._config ||
@@ -316,28 +316,40 @@ class Proof86InventoryCard extends HTMLElement {
       message.entry_id = this._config.entry_id;
     }
 
+    let subscription;
     try {
-      const unsubscribe = await this._hass.connection.subscribeMessage(
+      subscription = this._hass.connection.subscribeMessage(
         (inventory) => {
           this._inventory = inventory;
           this._error = null;
           this._render();
         },
-        message,
+        message
       );
-      if (this.isConnected) {
-        this._unsubscribe = unsubscribe;
-      } else {
-        unsubscribe();
-        this._subscriptionRequested = false;
-      }
     } catch (error) {
-      this._error =
-        (error && error.message) ||
-        "Unable to load the shared inventory. Confirm that 86Proof is connected.";
-      this._subscriptionRequested = false;
-      this._render();
+      this._subscriptionFailed(error);
+      return;
     }
+
+    Promise.resolve(subscription).then(
+      (unsubscribe) => {
+        if (this.isConnected) {
+          this._unsubscribe = unsubscribe;
+        } else {
+          unsubscribe();
+          this._subscriptionRequested = false;
+        }
+      },
+      (error) => this._subscriptionFailed(error)
+    );
+  }
+
+  _subscriptionFailed(error) {
+    this._error =
+      (error && error.message) ||
+      "Unable to load the shared inventory. Confirm that 86Proof is connected.";
+    this._subscriptionRequested = false;
+    this._render();
   }
 
   _disposeSubscription() {
@@ -350,7 +362,7 @@ class Proof86InventoryCard extends HTMLElement {
 
   _categoryLabel(bottle) {
     const type = String(bottle.type || "").trim();
-    if (["Liqueur", "Bitters", "Mixer"].includes(type)) return type;
+    if (["Liqueur", "Bitters", "Mixer"].indexOf(type) !== -1) return type;
     return String(bottle.category || type || "Other").trim();
   }
 
@@ -397,7 +409,7 @@ class Proof86InventoryCard extends HTMLElement {
       ]
         .map(normalized)
         .join(" ");
-      return matchesCategory && haystack.includes(query);
+      return matchesCategory && haystack.indexOf(query) !== -1;
     });
 
     return bottles.sort((left, right) => {
@@ -438,9 +450,9 @@ class Proof86InventoryCard extends HTMLElement {
         color: existing ? existing.color : this._categoryColor(bottle),
       });
     }
-    return [...categories.values()].sort(
+    return Array.from(categories.values()).sort(
       (left, right) =>
-        right.count - left.count || nameCollator.compare(left.label, right.label),
+        right.count - left.count || nameCollator.compare(left.label, right.label)
     );
   }
 
@@ -448,7 +460,7 @@ class Proof86InventoryCard extends HTMLElement {
     if (!this.shadowRoot) return;
 
     const title = escapeHtml(
-      (this._config && this._config.title) || "Inventory",
+      (this._config && this._config.title) || "Inventory"
     );
     if (this._error) {
       this.shadowRoot.innerHTML = `
@@ -475,7 +487,7 @@ class Proof86InventoryCard extends HTMLElement {
     const filtered = this._filteredBottles();
     const categories = this._categories();
     const barName = escapeHtml(
-      (this._inventory.bar && this._inventory.bar.name) || "Shared Bar",
+      (this._inventory.bar && this._inventory.bar.name) || "Shared Bar"
     );
     const total = this._inventory.bottles.length;
     const maxHeight =
@@ -520,15 +532,15 @@ class Proof86InventoryCard extends HTMLElement {
                  >All</button>
                  ${categories
                    .map(
-                     ({ value, label, color }) => `
+                     (category) => `
                        <button
-                         class="chip ${this._category === value ? "selected" : ""}"
-                         data-category="${escapeHtml(value)}"
-                         aria-pressed="${this._category === value}"
+                         class="chip ${this._category === category.value ? "selected" : ""}"
+                         data-category="${escapeHtml(category.value)}"
+                         aria-pressed="${this._category === category.value}"
                        >
-                         <i style="background:${color}"></i>${escapeHtml(label)}
+                         <i style="background:${category.color}"></i>${escapeHtml(category.label)}
                        </button>
-                     `,
+                     `
                    )
                    .join("")}
                </div>`
