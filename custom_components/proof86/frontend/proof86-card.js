@@ -225,6 +225,7 @@ class Proof86InventoryCard extends HTMLElement {
     this._sort = "name-asc";
     this._darkMode = false;
     this._subscriptionRequested = false;
+    this._subscriptionTimer = null;
   }
 
   setConfig(config) {
@@ -311,6 +312,15 @@ class Proof86InventoryCard extends HTMLElement {
     }
 
     this._subscriptionRequested = true;
+    this._subscriptionTimer = window.setTimeout(
+      () =>
+        this._subscriptionFailed(
+          new Error(
+            "Inventory loading timed out. Confirm that the 86Proof integration is connected."
+          )
+        ),
+      15000
+    );
     const message = { type: "proof86/inventory/subscribe" };
     if (this._config.entry_id) {
       message.entry_id = this._config.entry_id;
@@ -320,6 +330,7 @@ class Proof86InventoryCard extends HTMLElement {
     try {
       subscription = this._hass.connection.subscribeMessage(
         (inventory) => {
+          this._clearSubscriptionTimer();
           this._inventory = inventory;
           this._error = null;
           this._render();
@@ -333,7 +344,7 @@ class Proof86InventoryCard extends HTMLElement {
 
     Promise.resolve(subscription).then(
       (unsubscribe) => {
-        if (this.isConnected) {
+        if (this.isConnected && this._subscriptionRequested) {
           this._unsubscribe = unsubscribe;
         } else {
           unsubscribe();
@@ -345,6 +356,11 @@ class Proof86InventoryCard extends HTMLElement {
   }
 
   _subscriptionFailed(error) {
+    this._clearSubscriptionTimer();
+    if (this._unsubscribe) {
+      this._unsubscribe();
+      this._unsubscribe = null;
+    }
     this._error =
       (error && error.message) ||
       "Unable to load the shared inventory. Confirm that 86Proof is connected.";
@@ -353,11 +369,19 @@ class Proof86InventoryCard extends HTMLElement {
   }
 
   _disposeSubscription() {
+    this._clearSubscriptionTimer();
     if (this._unsubscribe) {
       this._unsubscribe();
       this._unsubscribe = null;
     }
     this._subscriptionRequested = false;
+  }
+
+  _clearSubscriptionTimer() {
+    if (this._subscriptionTimer != null) {
+      window.clearTimeout(this._subscriptionTimer);
+      this._subscriptionTimer = null;
+    }
   }
 
   _categoryLabel(bottle) {
@@ -907,6 +931,6 @@ if (!window.customCards.some((card) => card.type === CARD_TAG)) {
     type: CARD_TAG,
     name: "86Proof Inventory",
     description: "Browse and filter a shared 86Proof home bar inventory.",
-    preview: true,
+    preview: false,
   });
 }
