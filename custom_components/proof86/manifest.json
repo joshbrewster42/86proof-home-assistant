@@ -1,0 +1,19 @@
+{
+  "domain": "proof86",
+  "name": "86Proof",
+  "codeowners": [
+    "@joshbrewster42"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/joshbrewster42/86proof-home-assistant",
+  "dependencies": [
+    "frontend",
+    "http",
+    "websocket_api"
+  ],
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/joshbrewster42/86proof-home-assistant/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

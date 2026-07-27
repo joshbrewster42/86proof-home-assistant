@@ -1,0 +1,57 @@
+{
+  "title": "86Proof",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect a shared bar",
+        "description": "Enter the share code from the 86Proof app. Home Assistant will join the bar as a read-only viewer.",
+        "data": {
+          "share_code": "Share code",
+          "display_name": "Viewer name"
+        },
+        "data_description": {
+          "share_code": "The eight-character code shown in 86Proof.",
+          "display_name": "The name shown for this Home Assistant installation in the bar's viewer list."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect shared bar",
+        "description": "Access to this bar was revoked or expired. Enter a current share code for the same bar.",
+        "data": {
+          "share_code": "Share code"
+        },
+        "data_description": {
+          "share_code": "A current eight-character share code for this bar."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to 86Proof.",
+      "invalid_auth": "86Proof could not authorize this Home Assistant installation.",
+      "invalid_display_name": "Enter a viewer name between 1 and 60 characters.",
+      "invalid_share_code": "The share code is invalid, expired, or inactive.",
+      "unknown": "Unexpected error.",
+      "wrong_bar": "This share code belongs to a different bar."
+    },
+    "abort": {
+      "already_configured": "This shared bar is already configured.",
+      "reauth_successful": "86Proof was reconnected successfully."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "bottle_count": {
+        "name": "Bottles"
+      },
+      "empty_bottle_count": {
+        "name": "Empty bottles"
+      },
+      "low_stock_bottle_count": {
+        "name": "Low-stock bottles"
+      },
+      "category_count": {
+        "name": "Categories"
+      }
+    }
+  }
+}

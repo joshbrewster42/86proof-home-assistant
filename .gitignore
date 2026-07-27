@@ -1,0 +1,8 @@
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+# Private implementation reference supplied by the 86Proof app repository.
+86proof-firebase-integration.md

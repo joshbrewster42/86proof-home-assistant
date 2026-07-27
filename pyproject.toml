@@ -1,0 +1,53 @@
+[project]
+name = "proof86-home-assistant"
+version = "0.1.0"
+description = "Home Assistant integration for shared 86Proof bar inventories"
+requires-python = ">=3.13"
+dependencies = [
+  "aiohttp>=3.11.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.25.0",
+  "ruff>=0.11.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ASYNC",
+  "B",
+  "C4",
+  "D",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PERF",
+  "PIE",
+  "PTH",
+  "RUF",
+  "SIM",
+  "UP",
+  "W",
+]
+ignore = [
+  "D203",
+  "D213",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
