@@ -28,7 +28,7 @@ Add the inventory card to a dashboard using Home Assistant's manual card:
 
 ```yaml
 type: custom:proof86-inventory-card
-title: 86Proof
+title: Inventory
 ```
 
 If more than one shared bar is configured, add the config entry ID:
@@ -37,6 +37,24 @@ If more than one shared bar is configured, add the config entry ID:
 type: custom:proof86-inventory-card
 entry_id: 01JEXAMPLE
 ```
+
+The card includes a vertically scrollable bottle list, text search, horizontal
+category chips, and sorting by name or fullness. Bottle rows show category,
+ABV, estimated remaining volume, low-stock status, and a category-colored
+fullness bar.
+
+The list is 640 pixels tall by default. Set `max_height` to a value from 320 to
+1200 pixels to fit a particular dashboard:
+
+```yaml
+type: custom:proof86-inventory-card
+title: Inventory
+max_height: 800
+sort: fullness-desc
+```
+
+Supported initial sort values are `name-asc`, `name-desc`, `fullness-desc`, and
+`fullness-asc`. The sort can also be changed directly from the card.
 
 The card subscribes to inventory snapshots from the integration over Home
 Assistant's authenticated WebSocket connection. Bottle details are not copied
