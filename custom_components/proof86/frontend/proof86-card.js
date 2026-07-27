@@ -1,14 +1,15 @@
 const CARD_TAG = "proof86-inventory-card";
 
 const escapeHtml = (value) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 
-const normalized = (value) => String(value ?? "").trim().toLocaleLowerCase();
+const normalized = (value) =>
+  String(value == null ? "" : value).trim().toLocaleLowerCase();
 const nameCollator = new Intl.Collator(undefined, {
   sensitivity: "base",
   numeric: true,
@@ -37,7 +38,12 @@ const FULLNESS_LEVELS = {
   "86'd": 0,
 };
 
-const fullnessPercent = (value) => FULLNESS_LEVELS[normalized(value)] ?? null;
+const fullnessPercent = (value) => {
+  const label = normalized(value);
+  return Object.prototype.hasOwnProperty.call(FULLNESS_LEVELS, label)
+    ? FULLNESS_LEVELS[label]
+    : null;
+};
 
 const fullnessLabel = (value) => {
   const percent = fullnessPercent(value);
@@ -123,12 +129,18 @@ class Proof86InventoryCard extends HTMLElement {
   }
 
   setConfig(config) {
-    const maxHeight = Number(config.max_height ?? 640);
-    this._config = {
-      title: "Inventory",
-      ...config,
-      max_height: Math.max(320, Math.min(1200, maxHeight || 640)),
-    };
+    const maxHeight = Number(
+      config.max_height == null ? 640 : config.max_height,
+    );
+    this._config = Object.assign(
+      {
+        title: "Inventory",
+      },
+      config,
+      {
+        max_height: Math.max(320, Math.min(1200, maxHeight || 640)),
+      },
+    );
     if (
       ["name-asc", "name-desc", "fullness-desc", "fullness-asc"].includes(
         config.sort,
@@ -141,7 +153,7 @@ class Proof86InventoryCard extends HTMLElement {
   }
 
   set hass(hass) {
-    const darkMode = Boolean(hass?.themes?.darkMode);
+    const darkMode = Boolean(hass && hass.themes && hass.themes.darkMode);
     const themeChanged = this._hass && darkMode !== this._darkMode;
     this._hass = hass;
     this._darkMode = darkMode;
@@ -159,7 +171,10 @@ class Proof86InventoryCard extends HTMLElement {
   }
 
   getCardSize() {
-    const bottleCount = this._inventory?.bottles?.length ?? 0;
+    const bottleCount =
+      this._inventory && this._inventory.bottles
+        ? this._inventory.bottles.length
+        : 0;
     return Math.max(4, Math.min(12, Math.ceil(bottleCount / 3) + 3));
   }
 
@@ -167,7 +182,8 @@ class Proof86InventoryCard extends HTMLElement {
     if (
       !this.isConnected ||
       !this._config ||
-      !this._hass?.connection ||
+      !this._hass ||
+      !this._hass.connection ||
       this._subscriptionRequested
     ) {
       return;
@@ -196,7 +212,7 @@ class Proof86InventoryCard extends HTMLElement {
       }
     } catch (error) {
       this._error =
-        error?.message ??
+        (error && error.message) ||
         "Unable to load the shared inventory. Confirm that 86Proof is connected.";
       this._subscriptionRequested = false;
       this._render();
@@ -226,13 +242,20 @@ class Proof86InventoryCard extends HTMLElement {
       typeof bottleOrLabel === "string"
         ? bottleOrLabel
         : this._rowCategory(bottleOrLabel);
-    const colors = CATEGORY_COLORS[normalized(source)] ?? ["#8f8c86", "#b0aba5"];
+    const colors = CATEGORY_COLORS[normalized(source)] || [
+      "#8f8c86",
+      "#b0aba5",
+    ];
     return colors[this._darkMode ? 1 : 0];
   }
 
   _filteredBottles() {
     const query = normalized(this._query);
-    const bottles = (this._inventory?.bottles ?? []).filter((bottle) => {
+    const inventoryBottles =
+      this._inventory && this._inventory.bottles
+        ? this._inventory.bottles
+        : [];
+    const bottles = inventoryBottles.filter((bottle) => {
       const matchesCategory =
         this._category === "all" ||
         normalized(this._categoryLabel(bottle)) === this._category;
@@ -258,7 +281,9 @@ class Proof86InventoryCard extends HTMLElement {
         const rightPercent = fullnessPercent(right.fullness);
         if (leftPercent == null && rightPercent != null) return 1;
         if (leftPercent != null && rightPercent == null) return -1;
-        const fullnessOrder = (rightPercent ?? 0) - (leftPercent ?? 0);
+        const fullnessOrder =
+          (rightPercent == null ? 0 : rightPercent) -
+          (leftPercent == null ? 0 : leftPercent);
         if (fullnessOrder !== 0) {
           return this._sort === "fullness-desc"
             ? fullnessOrder
@@ -271,15 +296,19 @@ class Proof86InventoryCard extends HTMLElement {
 
   _categories() {
     const categories = new Map();
-    for (const bottle of this._inventory?.bottles ?? []) {
+    const bottles =
+      this._inventory && this._inventory.bottles
+        ? this._inventory.bottles
+        : [];
+    for (const bottle of bottles) {
       const label = this._categoryLabel(bottle);
       const value = normalized(label);
       const existing = categories.get(value);
       categories.set(value, {
         value,
         label,
-        count: (existing?.count ?? 0) + 1,
-        color: existing?.color ?? this._categoryColor(label),
+        count: (existing ? existing.count : 0) + 1,
+        color: existing ? existing.color : this._categoryColor(label),
       });
     }
     return [...categories.values()].sort(
@@ -291,7 +320,9 @@ class Proof86InventoryCard extends HTMLElement {
   _render() {
     if (!this.shadowRoot) return;
 
-    const title = escapeHtml(this._config?.title || "Inventory");
+    const title = escapeHtml(
+      (this._config && this._config.title) || "Inventory",
+    );
     if (this._error) {
       this.shadowRoot.innerHTML = `
         ${this._styles()}
@@ -316,9 +347,14 @@ class Proof86InventoryCard extends HTMLElement {
 
     const filtered = this._filteredBottles();
     const categories = this._categories();
-    const barName = escapeHtml(this._inventory.bar?.name || "Shared Bar");
+    const barName = escapeHtml(
+      (this._inventory.bar && this._inventory.bar.name) || "Shared Bar",
+    );
     const total = this._inventory.bottles.length;
-    const maxHeight = this._config?.max_height ?? 640;
+    const maxHeight =
+      this._config && this._config.max_height != null
+        ? this._config.max_height
+        : 640;
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
@@ -392,15 +428,18 @@ class Proof86InventoryCard extends HTMLElement {
       </ha-card>
     `;
 
-    this.shadowRoot
-      .querySelector('input[type="search"]')
-      ?.addEventListener("input", (event) => {
+    const searchInput = this.shadowRoot.querySelector('input[type="search"]');
+    if (searchInput) {
+      searchInput.addEventListener("input", (event) => {
         this._query = event.target.value;
         this._render();
         const search = this.shadowRoot.querySelector('input[type="search"]');
-        search?.focus();
-        search?.setSelectionRange(this._query.length, this._query.length);
+        if (search) {
+          search.focus();
+          search.setSelectionRange(this._query.length, this._query.length);
+        }
       });
+    }
 
     for (const chip of this.shadowRoot.querySelectorAll(".chip")) {
       chip.addEventListener("click", () => {
@@ -409,12 +448,13 @@ class Proof86InventoryCard extends HTMLElement {
       });
     }
 
-    this.shadowRoot
-      .querySelector(".sort-select")
-      ?.addEventListener("change", (event) => {
+    const sortSelect = this.shadowRoot.querySelector(".sort-select");
+    if (sortSelect) {
+      sortSelect.addEventListener("change", (event) => {
         this._sort = event.target.value;
         this._render();
       });
+    }
   }
 
   _bottleTemplate(bottle) {
@@ -638,14 +678,17 @@ class Proof86InventoryCard extends HTMLElement {
           padding: 3px 7px;
         }
         .stock.low {
+          background: rgba(196, 134, 43, 0.11);
           background: color-mix(in srgb, #c4862b 11%, transparent);
           color: #c4862b;
         }
         .stock.empty {
+          background: rgba(255, 59, 48, 0.11);
           background: color-mix(in srgb, var(--error-color) 11%, transparent);
           color: var(--error-color);
         }
         .meter {
+          background: rgba(143, 140, 134, 0.14);
           background: color-mix(in srgb, var(--category-color) 12%, transparent);
           height: 4px;
           margin-top: 12px;
