@@ -491,7 +491,7 @@ class Proof86InventoryCard extends HTMLElement {
             <div class="eyebrow">${barName} <span>•</span> ${total} ${total === 1 ? "Bottle" : "Bottles"}</div>
             <h1>${title}</h1>
           </div>
-          <ha-icon icon="mdi:bottle-tonic-outline"></ha-icon>
+          <span class="header-icon" aria-hidden="true"></span>
         </div>
 
         ${
@@ -665,9 +665,14 @@ class Proof86InventoryCard extends HTMLElement {
           gap: 20px;
           padding: 24px 22px 18px;
         }
-        .header ha-icon {
-          color: var(--secondary-text-color);
-          --mdc-icon-size: 32px;
+        .header-icon {
+          background: var(--secondary-text-color);
+          display: block;
+          flex: 0 0 auto;
+          height: 32px;
+          -webkit-mask: url("/proof86_static/bottle.svg") center / contain no-repeat;
+          mask: url("/proof86_static/bottle.svg") center / contain no-repeat;
+          width: 32px;
         }
         .simple-header { justify-content: flex-start; }
         .eyebrow {
@@ -873,7 +878,7 @@ class Proof86InventoryCard extends HTMLElement {
           .list-tools { padding: 0 16px 9px; }
           .bottles { padding: 0 16px 18px; }
           h1 { font-size: 27px; }
-          .header ha-icon { display: none; }
+          .header-icon { display: none; }
         }
       </style>
     `;

@@ -112,3 +112,15 @@ test("visual visibility settings remove optional bottle details", () => {
   assert.doesNotMatch(bottle, /mL</);
   assert.doesNotMatch(bottle, /class="meter"/);
 });
+
+test("renders the bundled custom bottle header icon", () => {
+  const card = createCard();
+  card._inventory = {
+    bar: { name: "Home Bar" },
+    bottles: [],
+  };
+  card._render();
+
+  assert.match(card.shadowRoot.innerHTML, /class="header-icon"/);
+  assert.doesNotMatch(card.shadowRoot.innerHTML, /mdi:bottle-tonic-outline/);
+});
