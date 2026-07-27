@@ -37,6 +37,9 @@ jobs:
       - name: Test JavaScript
         run: node --test backend/functions/*.test.js tests/frontend/*.test.js
 
+      - name: Check legacy dashboard syntax
+        run: npx --yes es-check@9.3.1 es2015 custom_components/proof86/frontend/proof86-card.js
+
   hacs:
     runs-on: ubuntu-latest
     steps:
