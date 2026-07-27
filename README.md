@@ -24,7 +24,16 @@ a searchable inventory dashboard card, and these summary sensors:
 - Low-stock bottle count
 - Category count
 
-Add the inventory card to a dashboard using Home Assistant's manual card:
+Add the **86Proof Inventory** card from Home Assistant's dashboard card picker.
+Its visual editor lets you change the title, initial sorting, scrollable list
+height, preferred Sections-dashboard width, and which controls or bottle
+details are visible. No YAML is required.
+
+In a Sections dashboard, choose a preferred width of 6, 9, or 12 columns (or
+the full section width) in the card editor. Home Assistant's normal card
+resizing controls remain available as well.
+
+The equivalent manual configuration is:
 
 ```yaml
 type: custom:proof86-inventory-card
@@ -43,8 +52,8 @@ category chips, and sorting by name or fullness. Bottle rows show category,
 ABV, estimated remaining volume, low-stock status, and a category-colored
 fullness bar.
 
-The list is 640 pixels tall by default. Set `max_height` to a value from 320 to
-1200 pixels to fit a particular dashboard:
+The list is 640 pixels tall by default. The visual editor can set it from 320
+to 1200 pixels. The same setting is available manually:
 
 ```yaml
 type: custom:proof86-inventory-card
@@ -55,6 +64,11 @@ sort: fullness-desc
 
 Supported initial sort values are `name-asc`, `name-desc`, `fullness-desc`, and
 `fullness-asc`. The sort can also be changed directly from the card.
+
+Fullness bars are only shown when a bottle has a recognized fullness value.
+Their light- or dark-theme color is selected from the bottle's 86Proof
+category. If a more specific Firebase category is not in the palette, the card
+falls back to the bottle type and then to a neutral color.
 
 The card subscribes to inventory snapshots from the integration over Home
 Assistant's authenticated WebSocket connection. Bottle details are not copied

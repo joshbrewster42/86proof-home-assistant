@@ -32,6 +32,7 @@ const FULLNESS_LEVELS = {
   "1/4": 25,
   "25%": 25,
   low: 10,
+  "almost empty": 10,
   empty: 0,
   "0%": 0,
   "86d": 0,
@@ -68,35 +69,21 @@ const CATEGORY_COLORS = {
   cognac: ["#c06030", "#d87d52"],
   asian: ["#6c7b9c", "#8a98b8"],
   "other spirit": ["#a0a0a0", "#b8b8b8"],
-  bourbon: ["#b35628", "#cc7248"],
-  rye: ["#a14d2e", "#be6a4e"],
   red: ["#7a1f1f", "#a53b3b"],
-  "red wine": ["#7a1f1f", "#a53b3b"],
   white: ["#e3c66e", "#edd88a"],
-  "white wine": ["#e3c66e", "#edd88a"],
   rosé: ["#e9a8a6", "#f2c0be"],
-  "rosé wine": ["#e9a8a6", "#f2c0be"],
   sparkling: ["#e4d5b7", "#efe5ce"],
-  "sparkling wine": ["#e4d5b7", "#efe5ce"],
   fortified: ["#c59b3a", "#d9b358"],
-  "dessert wine": ["#c59b3a", "#d9b358"],
   fruit: ["#c15d7c", "#d67c98"],
-  "fruit liqueur": ["#c15d7c", "#d67c98"],
   "herbal / botanical": ["#5d814d", "#729c63"],
-  "herbal liqueur": ["#788e55", "#8fa768"],
   "nut / seed": ["#7b563a", "#9c7858"],
   "coffee / chocolate": ["#5a3a2e", "#7d5a4a"],
-  "coffee liqueur": ["#5a3a2e", "#7d5a4a"],
   cream: ["#dcc7a1", "#e8d9bb"],
-  "cream liqueur": ["#dcc7a1", "#e8d9bb"],
-  "citrus liqueur": ["#f2a541", "#f7ba66"],
   vermouth: ["#892e33", "#b0494f"],
   amaro: ["#c9562c", "#e47145"],
   "other apéritifs": ["#d1a642", "#e6c05e"],
   aromatic: ["#6b3520", "#9a5540"],
-  "aromatic bitters": ["#6b3520", "#9a5540"],
   citrus: ["#e07c35", "#f2a86c"],
-  "orange bitters": ["#e07c35", "#f2a86c"],
   "herbal / spice": ["#437d68", "#5d9e86"],
   specialty: ["#5a3a2e", "#7d5a4a"],
   syrups: ["#b97239", "#d38d56"],
@@ -107,15 +94,127 @@ const CATEGORY_COLORS = {
   garnishes: ["#ce8aae", "#dda6c4"],
   "creams / dairy": ["#eadbc0", "#f2ead6"],
   "other mixer": ["#8f8c86", "#b0aba5"],
-  liqueur: ["#788e55", "#8fa768"],
-  bitters: ["#a0462d", "#ba5535"],
-  mixer: ["#8dc6dd", "#a8d8eb"],
-  wine: ["#7a1f1f", "#a53b3b"],
-  spirit: ["#c1742e", "#c47a2e"],
   "non-alcoholic": ["#6c7b9c", "#8a98b8"],
 };
 
+const TYPE_COLORS = {
+  spirit: ["#c1742e", "#c47a2e"],
+  wine: ["#7a1f1f", "#a53b3b"],
+  liqueur: ["#788e55", "#8fa768"],
+  "apéritif/digestif": ["#e07c35", "#f2a86c"],
+  "apéritif / digestif": ["#e07c35", "#f2a86c"],
+  "aperitif/digestif": ["#e07c35", "#f2a86c"],
+  "aperitif / digestif": ["#e07c35", "#f2a86c"],
+  bitters: ["#a0462d", "#ba5535"],
+  mixer: ["#8dc6dd", "#a8d8eb"],
+  mixers: ["#8dc6dd", "#a8d8eb"],
+  "mixers & ingredients": ["#8dc6dd", "#a8d8eb"],
+  "non-alcoholic": ["#6c7b9c", "#8a98b8"],
+};
+
+const DEFAULT_COLORS = ["#8f8c86", "#b0aba5"];
+const CARD_WIDTHS = {
+  narrow: 6,
+  medium: 9,
+  wide: 12,
+  full: "full",
+};
+
 class Proof86InventoryCard extends HTMLElement {
+  static getConfigForm() {
+    const sortOptions = [
+      { value: "name-asc", label: "Name A–Z" },
+      { value: "name-desc", label: "Name Z–A" },
+      { value: "fullness-desc", label: "Fullest first" },
+      { value: "fullness-asc", label: "Emptiest first" },
+    ];
+    const widthOptions = [
+      { value: "narrow", label: "Narrow (6 columns)" },
+      { value: "medium", label: "Medium (9 columns)" },
+      { value: "wide", label: "Wide (12 columns)" },
+      { value: "full", label: "Full section width" },
+    ];
+
+    return {
+      schema: [
+        { name: "title", selector: { text: {} } },
+        {
+          type: "grid",
+          name: "",
+          flatten: true,
+          column_min_width: "200px",
+          schema: [
+            {
+              name: "sort",
+              selector: { select: { options: sortOptions, mode: "dropdown" } },
+            },
+            {
+              name: "card_width",
+              selector: { select: { options: widthOptions, mode: "dropdown" } },
+            },
+          ],
+        },
+        {
+          name: "max_height",
+          selector: {
+            number: {
+              min: 320,
+              max: 1200,
+              step: 40,
+              mode: "slider",
+              unit_of_measurement: "px",
+            },
+          },
+        },
+        {
+          type: "expandable",
+          name: "",
+          title: "Visible details",
+          flatten: true,
+          schema: [
+            { name: "show_search", selector: { boolean: {} } },
+            { name: "show_category_chips", selector: { boolean: {} } },
+            { name: "show_abv", selector: { boolean: {} } },
+            { name: "show_remaining_volume", selector: { boolean: {} } },
+            { name: "show_fullness_bars", selector: { boolean: {} } },
+          ],
+        },
+      ],
+      computeLabel: (schema) => {
+        const labels = {
+          title: "Card title",
+          sort: "Initial sorting",
+          card_width: "Preferred card width",
+          max_height: "Scrollable list height",
+          show_search: "Search field",
+          show_category_chips: "Category filters",
+          show_abv: "Alcohol percentage",
+          show_remaining_volume: "Estimated remaining volume",
+          show_fullness_bars: "Bottle fullness bars",
+        };
+        return labels[schema.name];
+      },
+      computeHelper: (schema) =>
+        schema.name === "card_width"
+          ? "Sets the default width in a Sections dashboard. You can also resize the card directly on the dashboard."
+          : undefined,
+    };
+  }
+
+  static getStubConfig() {
+    return {
+      title: "Inventory",
+      sort: "name-asc",
+      card_width: "wide",
+      max_height: 640,
+      show_search: true,
+      show_category_chips: true,
+      show_abv: true,
+      show_remaining_volume: true,
+      show_fullness_bars: true,
+    };
+  }
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -135,19 +234,29 @@ class Proof86InventoryCard extends HTMLElement {
     this._config = Object.assign(
       {
         title: "Inventory",
+        sort: "name-asc",
+        card_width: "wide",
+        show_search: true,
+        show_category_chips: true,
+        show_abv: true,
+        show_remaining_volume: true,
+        show_fullness_bars: true,
       },
       config,
       {
         max_height: Math.max(320, Math.min(1200, maxHeight || 640)),
       },
     );
-    if (
-      ["name-asc", "name-desc", "fullness-desc", "fullness-asc"].includes(
-        config.sort,
-      )
-    ) {
-      this._sort = config.sort;
-    }
+    this._sort = [
+      "name-asc",
+      "name-desc",
+      "fullness-desc",
+      "fullness-asc",
+    ].includes(this._config.sort)
+      ? this._config.sort
+      : "name-asc";
+    if (!this._config.show_search) this._query = "";
+    if (!this._config.show_category_chips) this._category = "all";
     this._render();
     this._ensureSubscription();
   }
@@ -176,6 +285,18 @@ class Proof86InventoryCard extends HTMLElement {
         ? this._inventory.bottles.length
         : 0;
     return Math.max(4, Math.min(12, Math.ceil(bottleCount / 3) + 3));
+  }
+
+  getGridOptions() {
+    const configuredWidth =
+      this._config && CARD_WIDTHS[this._config.card_width]
+        ? CARD_WIDTHS[this._config.card_width]
+        : CARD_WIDTHS.wide;
+    return {
+      columns: configuredWidth,
+      min_columns: 3,
+      min_rows: 4,
+    };
   }
 
   async _ensureSubscription() {
@@ -238,14 +359,20 @@ class Proof86InventoryCard extends HTMLElement {
   }
 
   _categoryColor(bottleOrLabel) {
-    const source =
-      typeof bottleOrLabel === "string"
-        ? bottleOrLabel
-        : this._rowCategory(bottleOrLabel);
-    const colors = CATEGORY_COLORS[normalized(source)] || [
-      "#8f8c86",
-      "#b0aba5",
-    ];
+    let colors;
+    if (typeof bottleOrLabel === "string") {
+      const key = normalized(bottleOrLabel);
+      colors = CATEGORY_COLORS[key] || TYPE_COLORS[key];
+    } else {
+      const category = normalized(bottleOrLabel.category);
+      const type = normalized(bottleOrLabel.type);
+      colors =
+        CATEGORY_COLORS[category] ||
+        CATEGORY_COLORS[type] ||
+        TYPE_COLORS[type] ||
+        TYPE_COLORS[category];
+    }
+    colors = colors || DEFAULT_COLORS;
     return colors[this._darkMode ? 1 : 0];
   }
 
@@ -308,7 +435,7 @@ class Proof86InventoryCard extends HTMLElement {
         value,
         label,
         count: (existing ? existing.count : 0) + 1,
-        color: existing ? existing.color : this._categoryColor(label),
+        color: existing ? existing.color : this._categoryColor(bottle),
       });
     }
     return [...categories.values()].sort(
@@ -367,38 +494,46 @@ class Proof86InventoryCard extends HTMLElement {
           <ha-icon icon="mdi:bottle-tonic-outline"></ha-icon>
         </div>
 
-        <div class="search-row">
-          <label class="search">
-            <ha-icon icon="mdi:magnify"></ha-icon>
-            <input
-              type="search"
-              aria-label="Search bottles"
-              placeholder="Search your bar…"
-              value="${escapeHtml(this._query)}"
-            >
-          </label>
-        </div>
+        ${
+          this._config.show_search
+            ? `<div class="search-row">
+                 <label class="search">
+                   <ha-icon icon="mdi:magnify"></ha-icon>
+                   <input
+                     type="search"
+                     aria-label="Search bottles"
+                     placeholder="Search your bar…"
+                     value="${escapeHtml(this._query)}"
+                   >
+                 </label>
+               </div>`
+            : ""
+        }
 
-        <div class="chips" role="group" aria-label="Filter by category">
-          <button
-            class="chip ${this._category === "all" ? "selected" : ""}"
-            data-category="all"
-            aria-pressed="${this._category === "all"}"
-          >All</button>
-          ${categories
-            .map(
-              ({ value, label, color }) => `
-                <button
-                  class="chip ${this._category === value ? "selected" : ""}"
-                  data-category="${escapeHtml(value)}"
-                  aria-pressed="${this._category === value}"
-                >
-                  <i style="background:${color}"></i>${escapeHtml(label)}
-                </button>
-              `,
-            )
-            .join("")}
-        </div>
+        ${
+          this._config.show_category_chips
+            ? `<div class="chips" role="group" aria-label="Filter by category">
+                 <button
+                   class="chip ${this._category === "all" ? "selected" : ""}"
+                   data-category="all"
+                   aria-pressed="${this._category === "all"}"
+                 >All</button>
+                 ${categories
+                   .map(
+                     ({ value, label, color }) => `
+                       <button
+                         class="chip ${this._category === value ? "selected" : ""}"
+                         data-category="${escapeHtml(value)}"
+                         aria-pressed="${this._category === value}"
+                       >
+                         <i style="background:${color}"></i>${escapeHtml(label)}
+                       </button>
+                     `,
+                   )
+                   .join("")}
+               </div>`
+            : ""
+        }
 
         <div class="list-tools">
           <span>${filtered.length} ${filtered.length === 1 ? "bottle" : "bottles"}</span>
@@ -467,13 +602,13 @@ class Proof86InventoryCard extends HTMLElement {
     const remaining =
       Number.isFinite(size) && percent != null
         ? Math.round(size * (percent / 100))
-        : Number.isFinite(size)
-          ? Math.round(size)
-          : null;
+        : null;
     const abv = Number(bottle.abv);
     const meta = [
       category,
-      Number.isFinite(abv) && abv > 0 ? `${abv.toFixed(1)}%` : null,
+      this._config.show_abv && Number.isFinite(abv) && abv > 0
+        ? `${abv.toFixed(1)}%`
+        : null,
     ].filter(Boolean);
 
     return `
@@ -491,15 +626,19 @@ class Proof86InventoryCard extends HTMLElement {
                   ? `<span class="stock empty">Empty</span>`
                   : ""
             }
-            ${remaining == null ? "" : `<span class="remaining">${remaining.toLocaleString()} mL</span>`}
+            ${
+              !this._config.show_remaining_volume || remaining == null
+                ? ""
+                : `<span class="remaining">${remaining.toLocaleString()} mL</span>`
+            }
           </div>
         </div>
         ${
-          percent == null
-            ? `<div class="unknown-level">${escapeHtml(fullnessLabel(bottle.fullness))}</div>`
-            : `<div class="meter" role="img" aria-label="${escapeHtml(fullnessLabel(bottle.fullness))}">
+          this._config.show_fullness_bars && percent != null
+            ? `<div class="meter" role="img" aria-label="Fullness: ${escapeHtml(fullnessLabel(bottle.fullness))}">
                  <i style="width:${percent}%"></i>
                </div>`
+            : ""
         }
       </article>
     `;
@@ -660,7 +799,7 @@ class Proof86InventoryCard extends HTMLElement {
           text-transform: uppercase;
           white-space: nowrap;
         }
-        .bottle-name span, .remaining, .unknown-level {
+        .bottle-name span, .remaining {
           color: var(--secondary-text-color);
           font: 500 12px/1.3 var(--proof86-mono);
         }
@@ -698,10 +837,6 @@ class Proof86InventoryCard extends HTMLElement {
           background: var(--category-color);
           display: block;
           height: 100%;
-        }
-        .unknown-level {
-          margin-top: 9px;
-          text-align: right;
         }
         .state {
           gap: 12px;
