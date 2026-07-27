@@ -18,7 +18,11 @@ global.customElements = {
   define: (tag, element) => registry.set(tag, element),
   get: (tag) => registry.get(tag),
 };
-global.window = { customCards: [] };
+global.window = {
+  customCards: [],
+  setTimeout,
+  clearTimeout,
+};
 
 require("../../custom_components/proof86/frontend/proof86-card.js");
 
@@ -37,6 +41,7 @@ test("registers a graphical editor form and useful defaults", () => {
   assert.ok(form.schema.some((field) => field.name === "max_height"));
   assert.equal(defaults.card_width, "wide");
   assert.equal(defaults.show_fullness_bars, true);
+  assert.equal(window.customCards[0].preview, false);
 });
 
 test("returns the configured Sections-dashboard width", () => {
