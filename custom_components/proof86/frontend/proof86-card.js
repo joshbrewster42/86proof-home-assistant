@@ -423,7 +423,7 @@ class Proof86InventoryCard extends HTMLElement {
     const color = this._categoryColor(bottle);
     const isLow = percent != null && percent > 0 && percent <= 25;
     const isEmpty = percent === 0;
-    const size = Number(bottle.size);
+    const size = bottle.size == null ? null : Number(bottle.size);
     const remaining =
       Number.isFinite(size) && percent != null
         ? Math.round(size * (percent / 100))
