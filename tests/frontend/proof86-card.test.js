@@ -63,6 +63,8 @@ test("registers a graphical editor form and useful defaults", () => {
   assert.equal(defaults.layout, "auto");
   assert.equal(defaults.background_color, "");
   assert.equal(defaults.bottle_color, "");
+  assert.equal(defaults.chip_color, "");
+  assert.equal(defaults.button_color, "");
   assert.equal(defaults.background_opacity, 100);
   assert.equal(defaults.bottle_opacity, 100);
   assert.equal(defaults.horizontal_columns, "auto");
@@ -79,6 +81,10 @@ test("applies configurable card and bottle transparency", () => {
     background_opacity: 20,
     bottle_color: "#17171F",
     bottle_opacity: 65,
+    chip_color: "#FFF",
+    chip_opacity: 15,
+    button_color: "#FFF",
+    button_opacity: 25,
   });
   card._inventory = {
     bar: { name: "Home Bar" },
@@ -90,6 +96,10 @@ test("applies configurable card and bottle transparency", () => {
   assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-opacity:65%/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-card-color:#FFF/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-color:#17171F/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-chip-color:#FFF/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-chip-opacity:15%/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-button-color:#FFF/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-button-opacity:25%/);
   assert.match(card.shadowRoot.innerHTML, /color-mix\(/);
 });
 
@@ -97,10 +107,14 @@ test("rejects invalid custom background colors", () => {
   const card = createCard({
     background_color: "white",
     bottle_color: "#12345; background:red",
+    chip_color: "transparent",
+    button_color: "#12",
   });
 
   assert.equal(card._config.background_color, "");
   assert.equal(card._config.bottle_color, "");
+  assert.equal(card._config.chip_color, "");
+  assert.equal(card._config.button_color, "");
 });
 
 test("renders the horizontal inventory canvas and touch actions", () => {

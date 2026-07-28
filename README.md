@@ -61,11 +61,12 @@ card and viewport are wide; either layout can be forced for a specific
 dashboard. Text and category colors follow the Home Assistant theme.
 
 The graphical editor accepts separate hex colors and 0–100% opacity values for
-the outer card background and individual bottle tiles. Leaving a hex field
-empty uses the current Home Assistant surface color. Both opacity values
-default to 100%, preserving the normal appearance. Each dashboard view can
-therefore tune its card independently for the background displayed on that
-device. Existing `card_mod` styles remain compatible; an `!important`
+the outer card, bottle tiles, unselected category chips, and Search/Sort
+buttons. Leaving a hex field empty uses the current Home Assistant surface
+color. Opacity values default to 100%, preserving the normal appearance. Each
+dashboard view can therefore tune its card independently for the background
+displayed on that device. Selected chips retain their high-contrast theme
+style. Existing `card_mod` styles remain compatible; an `!important`
 background declaration overrides the outer card's configured background.
 
 The list is 640 pixels tall by default. The visual editor can set it from 320
