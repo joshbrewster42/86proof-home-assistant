@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 
 STATIC_URL = "/proof86_static"
 CARD_FILENAME = "proof86-card.js"
-CARD_VERSION = "0.3.3"
+CARD_VERSION = "0.3.4"
 CARD_URL = f"{STATIC_URL}/{CARD_FILENAME}?v={CARD_VERSION}"
 
 
@@ -26,4 +26,8 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
             )
         ]
     )
+    # Home Assistant maintains separate registries for its modern module
+    # frontend and its legacy WebView frontend. The card is constrained to
+    # ES2015 syntax so the same asset can safely serve both paths.
     add_extra_js_url(hass, CARD_URL)
+    add_extra_js_url(hass, CARD_URL, es5=True)
