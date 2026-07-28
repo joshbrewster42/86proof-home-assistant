@@ -30,7 +30,16 @@ global.window = {
   clearTimeout,
 };
 
+const nativeIntl = global.Intl;
+global.Intl = {
+  Collator: class {
+    constructor() {
+      throw new Error("ICU locale data unavailable");
+    }
+  },
+};
 require("../../custom_components/proof86/frontend/proof86-card.js");
+global.Intl = nativeIntl;
 
 const InventoryCard = registry.get("proof86-inventory-card");
 
@@ -50,6 +59,19 @@ test("registers a graphical editor form and useful defaults", () => {
   assert.equal(window.customCards.length, 1);
   assert.equal(window.customCards[0].name, "86Proof Inventory");
   assert.equal(window.customCards[0].preview, false);
+});
+
+test("registers and sorts when Android locale data is unavailable", () => {
+  const card = createCard();
+  card._inventory = {
+    bar: { name: "Home Bar" },
+    bottles: [{ name: "Zulu" }, { name: "alpha" }],
+  };
+
+  assert.deepEqual(
+    card._filteredBottles().map((bottle) => bottle.name),
+    ["alpha", "Zulu"],
+  );
 });
 
 test("returns the configured Sections-dashboard width", () => {

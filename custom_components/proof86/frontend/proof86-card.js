@@ -10,10 +10,28 @@ const escapeHtml = (value) =>
 
 const normalized = (value) =>
   String(value == null ? "" : value).trim().toLocaleLowerCase();
-const nameCollator = new Intl.Collator(undefined, {
-  sensitivity: "base",
-  numeric: true,
-});
+let nameCollator = null;
+try {
+  if (typeof Intl !== "undefined" && Intl.Collator) {
+    nameCollator = new Intl.Collator(undefined, {
+      sensitivity: "base",
+      numeric: true,
+    });
+  }
+} catch (_error) {
+  // Some lightweight Android builds ship WebView without complete ICU data.
+}
+
+const compareNames = (left, right) => {
+  const leftName = String(left == null ? "" : left);
+  const rightName = String(right == null ? "" : right);
+  if (nameCollator) return nameCollator.compare(leftName, rightName);
+  const normalizedLeft = normalized(leftName);
+  const normalizedRight = normalized(rightName);
+  if (normalizedLeft < normalizedRight) return -1;
+  if (normalizedLeft > normalizedRight) return 1;
+  return 0;
+};
 
 const FULLNESS_LEVELS = {
   full: 100,
@@ -437,7 +455,7 @@ class Proof86InventoryCard extends HTMLElement {
     });
 
     return bottles.sort((left, right) => {
-      const nameOrder = nameCollator.compare(left.name || "", right.name || "");
+      const nameOrder = compareNames(left.name || "", right.name || "");
       if (this._sort === "name-desc") return -nameOrder;
       if (this._sort === "fullness-desc" || this._sort === "fullness-asc") {
         const leftPercent = fullnessPercent(left.fullness);
@@ -476,7 +494,7 @@ class Proof86InventoryCard extends HTMLElement {
     }
     return Array.from(categories.values()).sort(
       (left, right) =>
-        right.count - left.count || nameCollator.compare(left.label, right.label)
+        right.count - left.count || compareNames(left.label, right.label)
     );
   }
 
