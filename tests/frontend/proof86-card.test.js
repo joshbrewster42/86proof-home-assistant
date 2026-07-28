@@ -61,7 +61,8 @@ test("registers a graphical editor form and useful defaults", () => {
   assert.ok(form.schema.some((field) => field.name === "layout"));
   assert.equal(defaults.card_width, "wide");
   assert.equal(defaults.layout, "auto");
-  assert.equal(defaults.appearance, "auto");
+  assert.equal(defaults.background_color, "");
+  assert.equal(defaults.bottle_color, "");
   assert.equal(defaults.background_opacity, 100);
   assert.equal(defaults.bottle_opacity, 100);
   assert.equal(defaults.horizontal_columns, "auto");
@@ -74,7 +75,9 @@ test("registers a graphical editor form and useful defaults", () => {
 test("applies configurable card and bottle transparency", () => {
   const card = createCard({
     layout: "horizontal",
+    background_color: "#FFF",
     background_opacity: 20,
+    bottle_color: "#17171F",
     bottle_opacity: 65,
   });
   card._inventory = {
@@ -85,21 +88,19 @@ test("applies configurable card and bottle transparency", () => {
 
   assert.match(card.shadowRoot.innerHTML, /--proof86-card-opacity:20%/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-opacity:65%/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-card-color:#FFF/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-color:#17171F/);
   assert.match(card.shadowRoot.innerHTML, /color-mix\(/);
 });
 
-test("can force the card appearance independently of Home Assistant", () => {
-  const card = createCard({ layout: "horizontal", appearance: "dark" });
-  card._inventory = {
-    bar: { name: "Home Bar" },
-    bottles: [{ name: "Sipsmith VJOP", category: "Gin", type: "Spirit" }],
-  };
-  card._render();
+test("rejects invalid custom background colors", () => {
+  const card = createCard({
+    background_color: "white",
+    bottle_color: "#12345; background:red",
+  });
 
-  assert.equal(card._darkMode, true);
-  assert.match(card.shadowRoot.innerHTML, /appearance-dark/);
-  assert.match(card.shadowRoot.innerHTML, /--proof86-primary-text: #f5f5f7/);
-  assert.match(card.shadowRoot.innerHTML, /--category-color:#77b993/);
+  assert.equal(card._config.background_color, "");
+  assert.equal(card._config.bottle_color, "");
 });
 
 test("renders the horizontal inventory canvas and touch actions", () => {

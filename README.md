@@ -58,14 +58,15 @@ buttons open large in-card action sheets suitable for kiosk WebViews.
 Choose **Automatic**, **Vertical list**, or **Horizontal canvas** from the
 graphical card editor. Automatic selects the horizontal canvas when both the
 card and viewport are wide; either layout can be forced for a specific
-dashboard. Appearance can follow Home Assistant or be locked to the card's
-light or dark palette.
+dashboard. Text and category colors follow the Home Assistant theme.
 
-The graphical editor also has separate 0–100% opacity sliders for the outer
-card background and individual bottle tiles. Both default to 100%, preserving
-the normal Home Assistant appearance. Existing `card_mod` styles remain
-compatible; an `!important` background declaration overrides the outer card's
-configured background.
+The graphical editor accepts separate hex colors and 0–100% opacity values for
+the outer card background and individual bottle tiles. Leaving a hex field
+empty uses the current Home Assistant surface color. Both opacity values
+default to 100%, preserving the normal appearance. Each dashboard view can
+therefore tune its card independently for the background displayed on that
+device. Existing `card_mod` styles remain compatible; an `!important`
+background declaration overrides the outer card's configured background.
 
 The list is 640 pixels tall by default. The visual editor can set it from 320
 to 1200 pixels. The same setting is available manually:
