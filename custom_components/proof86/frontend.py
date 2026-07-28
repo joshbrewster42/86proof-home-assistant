@@ -10,20 +10,29 @@ from homeassistant.core import HomeAssistant
 
 STATIC_URL = "/proof86_static"
 CARD_FILENAME = "proof86-card.js"
-CARD_VERSION = "0.4.2"
-CARD_URL = f"{STATIC_URL}/{CARD_FILENAME}?v={CARD_VERSION}"
+CARD_VERSION = "0.4.3"
+CARD_URL = f"/proof86_card_{CARD_VERSION.replace('.', '_')}.js"
 
 
 async def async_register_frontend(hass: HomeAssistant) -> None:
     """Serve and load the bundled 86Proof dashboard card."""
     frontend_path = Path(__file__).parent / "frontend"
+    card_path = frontend_path / CARD_FILENAME
     await hass.http.async_register_static_paths(
         [
             StaticPathConfig(
                 STATIC_URL,
                 path=str(frontend_path),
                 cache_headers=True,
-            )
+            ),
+            # Some embedded WebViews cache JavaScript by path and ignore query
+            # strings. A new path guarantees that each frontend version is
+            # fetched while the stable directory continues serving SVG assets.
+            StaticPathConfig(
+                CARD_URL,
+                path=str(card_path),
+                cache_headers=True,
+            ),
         ]
     )
     # Home Assistant maintains separate registries for its modern module
