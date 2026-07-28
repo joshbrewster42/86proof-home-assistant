@@ -53,8 +53,8 @@ ABV, estimated remaining volume, low-stock status, and a category-colored
 fullness bar.
 
 For landscape displays, the card also includes a horizontal inventory canvas
-with a touch-friendly two- or three-column bottle grid. Search, Filter, and
-Sort buttons open large in-card action sheets suitable for kiosk WebViews.
+with a touch-friendly two- or three-column bottle grid. Search and Sort
+buttons open large in-card action sheets suitable for kiosk WebViews.
 Choose **Automatic**, **Vertical list**, or **Horizontal canvas** from the
 graphical card editor. Automatic selects the horizontal canvas when both the
 card and viewport are wide; either layout can be forced for a specific

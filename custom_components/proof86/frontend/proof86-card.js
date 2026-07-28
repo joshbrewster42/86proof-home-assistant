@@ -821,7 +821,7 @@ class Proof86InventoryCard extends HTMLElement {
             ? this._horizontalContent(filtered, categories)
             : this._verticalContent(filtered, categories)
         }
-        ${horizontal ? this._panelTemplate(categories) : ""}
+        ${horizontal ? this._panelTemplate() : ""}
       </ha-card>
     `;
 
@@ -917,14 +917,6 @@ class Proof86InventoryCard extends HTMLElement {
                </button>`
             : ""
         }
-        ${
-          this._config.show_category_chips
-            ? `<button class="action-button ${this._category !== "all" ? "active" : ""}" data-panel="filter">
-                 <ha-icon icon="mdi:filter-variant"></ha-icon>
-                 <span>${this._category === "all" ? "Filter" : "Filtered"}</span>
-               </button>`
-            : ""
-        }
         <button class="action-button" data-panel="sort">
           <ha-icon icon="mdi:sort"></ha-icon>
           <span>${escapeHtml(this._sortLabel())}</span>
@@ -933,7 +925,7 @@ class Proof86InventoryCard extends HTMLElement {
     `;
   }
 
-  _panelTemplate(categories) {
+  _panelTemplate() {
     if (!this._panel) return "";
     let content = "";
     if (this._panel === "search") {
@@ -957,28 +949,6 @@ class Proof86InventoryCard extends HTMLElement {
               : ""
           }
         </label>
-      `;
-    } else if (this._panel === "filter") {
-      content = `
-        <div class="sheet-title">
-          <div><ha-icon icon="mdi:filter-variant"></ha-icon><strong>Filter bottles</strong></div>
-          <button class="close-panel" aria-label="Close filters"><ha-icon icon="mdi:close"></ha-icon></button>
-        </div>
-        <div class="sheet-options filter-options">
-          <button class="sheet-option ${this._category === "all" ? "selected" : ""}" data-category="all">
-            <span>All categories</span><small>${this._inventory.bottles.length}</small>
-          </button>
-          ${categories
-            .map(
-              (category) => `
-                <button class="sheet-option ${this._category === category.value ? "selected" : ""}" data-category="${escapeHtml(category.value)}">
-                  <span><i style="background:${category.color}"></i>${escapeHtml(category.label)}</span>
-                  <small>${category.count}</small>
-                </button>
-              `
-            )
-            .join("")}
-        </div>
       `;
     } else {
       const sortOptions = [
@@ -1037,7 +1007,6 @@ class Proof86InventoryCard extends HTMLElement {
     for (const chip of this.shadowRoot.querySelectorAll("[data-category]")) {
       chip.addEventListener("click", () => {
         this._category = chip.dataset.category;
-        if (this._panel === "filter") this._panel = null;
         this._render();
       });
     }
@@ -1158,32 +1127,39 @@ class Proof86InventoryCard extends HTMLElement {
         }
         * { box-sizing: border-box; }
         ha-card {
-          background: var(--secondary-background-color);
+          --proof86-primary-text: var(--primary-text-color);
+          --proof86-secondary-text: var(--secondary-text-color);
+          --proof86-primary-bg: var(--primary-background-color);
+          --proof86-secondary-bg: var(--secondary-background-color);
+          --proof86-surface: var(--card-background-color);
+          --proof86-divider: var(--divider-color);
+          --proof86-error: var(--error-color);
+          background: var(--proof86-secondary-bg);
           background: color-mix(
             in srgb,
-            var(--secondary-background-color) var(--proof86-card-opacity),
+            var(--proof86-secondary-bg) var(--proof86-card-opacity),
             transparent
           );
           overflow: hidden;
         }
         ha-card.appearance-light {
-          --primary-text-color: #171717;
-          --secondary-text-color: #77736e;
-          --primary-background-color: #f6f3ed;
-          --secondary-background-color: #f6f3ed;
-          --card-background-color: #ffffff;
-          --divider-color: #e8e3dc;
-          --error-color: #d83b32;
+          --proof86-primary-text: #171717;
+          --proof86-secondary-text: #77736e;
+          --proof86-primary-bg: #f6f3ed;
+          --proof86-secondary-bg: #f6f3ed;
+          --proof86-surface: #ffffff;
+          --proof86-divider: #e8e3dc;
+          --proof86-error: #d83b32;
           color-scheme: light;
         }
         ha-card.appearance-dark {
-          --primary-text-color: #f5f5f7;
-          --secondary-text-color: #8c8c95;
-          --primary-background-color: #0d0d13;
-          --secondary-background-color: #0d0d13;
-          --card-background-color: #17171f;
-          --divider-color: #272730;
-          --error-color: #ff5147;
+          --proof86-primary-text: #f5f5f7;
+          --proof86-secondary-text: #8c8c95;
+          --proof86-primary-bg: #0d0d13;
+          --proof86-secondary-bg: #0d0d13;
+          --proof86-surface: #17171f;
+          --proof86-divider: #272730;
+          --proof86-error: #ff5147;
           color-scheme: dark;
         }
         .header, .search, .list-tools, .sort, .state, .bottle-top {
@@ -1196,7 +1172,7 @@ class Proof86InventoryCard extends HTMLElement {
           padding: 24px 22px 18px;
         }
         .header-icon {
-          background: var(--secondary-text-color);
+          background: var(--proof86-secondary-text);
           display: block;
           flex: 0 0 auto;
           height: 32px;
@@ -1206,35 +1182,35 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .simple-header { justify-content: flex-start; }
         .eyebrow {
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           font: 500 12px/1.3 var(--proof86-mono);
           letter-spacing: 1.4px;
           text-transform: uppercase;
         }
         .eyebrow span { padding: 0 3px; }
         h1 {
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           font-size: 30px;
           line-height: 1.1;
           margin: 7px 0 0;
         }
         .search-row { padding: 0 22px 14px; }
         .search {
-          background: var(--card-background-color);
-          border: 1px solid var(--divider-color);
+          background: var(--proof86-surface);
+          border: 1px solid var(--proof86-divider);
           border-radius: 14px;
           gap: 10px;
           padding: 0 14px;
           width: 100%;
         }
         .search ha-icon {
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           --mdc-icon-size: 23px;
         }
         input {
           background: transparent;
           border: 0;
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           flex: 1;
           font: inherit;
           font-size: 16px;
@@ -1242,7 +1218,7 @@ class Proof86InventoryCard extends HTMLElement {
           min-width: 0;
           outline: 0;
         }
-        input::placeholder { color: var(--secondary-text-color); }
+        input::placeholder { color: var(--proof86-secondary-text); }
         .chips {
           display: flex;
           gap: 9px;
@@ -1253,10 +1229,10 @@ class Proof86InventoryCard extends HTMLElement {
         .chips::-webkit-scrollbar { display: none; }
         .chip {
           align-items: center;
-          background: var(--card-background-color);
-          border: 1px solid var(--divider-color);
+          background: var(--proof86-surface);
+          border: 1px solid var(--proof86-divider);
           border-radius: 999px;
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           cursor: pointer;
           display: inline-flex;
           flex: 0 0 auto;
@@ -1270,12 +1246,12 @@ class Proof86InventoryCard extends HTMLElement {
           width: 8px;
         }
         .chip.selected {
-          background: var(--primary-text-color);
-          border-color: var(--primary-text-color);
-          color: var(--primary-background-color);
+          background: var(--proof86-primary-text);
+          border-color: var(--proof86-primary-text);
+          color: var(--proof86-primary-bg);
         }
         .list-tools {
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           font: 500 11px var(--proof86-mono);
           justify-content: space-between;
           letter-spacing: 1px;
@@ -1283,7 +1259,7 @@ class Proof86InventoryCard extends HTMLElement {
           text-transform: uppercase;
         }
         .sort {
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           position: relative;
         }
         .sort select {
@@ -1309,16 +1285,16 @@ class Proof86InventoryCard extends HTMLElement {
           max-height: var(--proof86-list-height);
           overflow-y: auto;
           padding: 0 22px 22px;
-          scrollbar-color: var(--divider-color) transparent;
+          scrollbar-color: var(--proof86-divider) transparent;
         }
         .bottle {
-          background: var(--card-background-color);
+          background: var(--proof86-surface);
           background: color-mix(
             in srgb,
-            var(--card-background-color) var(--proof86-bottle-opacity),
+            var(--proof86-surface) var(--proof86-bottle-opacity),
             transparent
           );
-          border: 1px solid var(--divider-color);
+          border: 1px solid var(--proof86-divider);
           border-radius: 12px;
           flex: 0 0 auto;
           padding: 14px 15px 13px;
@@ -1330,7 +1306,7 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .bottle-name { min-width: 0; }
         .bottle-name strong {
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           display: block;
           font-size: 15px;
           letter-spacing: 0.2px;
@@ -1340,7 +1316,7 @@ class Proof86InventoryCard extends HTMLElement {
           white-space: nowrap;
         }
         .bottle-name span, .remaining {
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           font: 500 12px/1.3 var(--proof86-mono);
         }
         .bottle-name span { display: block; margin-top: 4px; }
@@ -1363,8 +1339,8 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .stock.empty {
           background: rgba(255, 59, 48, 0.11);
-          background: color-mix(in srgb, var(--error-color) 11%, transparent);
-          color: var(--error-color);
+          background: color-mix(in srgb, var(--proof86-error) 11%, transparent);
+          color: var(--proof86-error);
         }
         .meter {
           background: rgba(143, 140, 134, 0.14);
@@ -1384,10 +1360,10 @@ class Proof86InventoryCard extends HTMLElement {
           min-height: 150px;
           padding: 24px;
         }
-        .error { color: var(--error-color); }
+        .error { color: var(--proof86-error); }
         .empty-state {
           align-items: center;
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           display: flex;
           flex-direction: column;
           gap: 7px;
@@ -1395,7 +1371,7 @@ class Proof86InventoryCard extends HTMLElement {
           text-align: center;
         }
         .empty-state ha-icon { --mdc-icon-size: 32px; }
-        .empty-state strong { color: var(--primary-text-color); margin-top: 4px; }
+        .empty-state strong { color: var(--proof86-primary-text); margin-top: 4px; }
         .empty-state span { font-size: 13px; }
         .horizontal {
           display: flex;
@@ -1432,10 +1408,10 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .action-button {
           align-items: center;
-          background: var(--card-background-color);
-          border: 1px solid var(--divider-color);
+          background: var(--proof86-surface);
+          border: 1px solid var(--proof86-divider);
           border-radius: 11px;
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           cursor: pointer;
           display: flex;
           font: 600 11px var(--proof86-mono);
@@ -1447,8 +1423,8 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .action-button ha-icon { --mdc-icon-size: 19px; }
         .action-button.active {
-          border-color: var(--primary-text-color);
-          box-shadow: inset 0 0 0 1px var(--primary-text-color);
+          border-color: var(--proof86-primary-text);
+          box-shadow: inset 0 0 0 1px var(--proof86-primary-text);
         }
         .horizontal .chips {
           flex: 0 0 auto;
@@ -1513,11 +1489,11 @@ class Proof86InventoryCard extends HTMLElement {
           z-index: 20;
         }
         .action-sheet {
-          background: var(--card-background-color);
-          border: 1px solid var(--divider-color);
+          background: var(--proof86-surface);
+          border: 1px solid var(--proof86-divider);
           border-radius: 18px;
           box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           max-height: calc(100% - 24px);
           max-width: 640px;
           overflow-y: auto;
@@ -1542,7 +1518,7 @@ class Proof86InventoryCard extends HTMLElement {
           align-items: center;
           background: transparent;
           border: 0;
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           cursor: pointer;
           display: flex;
           height: 44px;
@@ -1567,10 +1543,10 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .sheet-option {
           align-items: center;
-          background: var(--secondary-background-color);
-          border: 1px solid var(--divider-color);
+          background: var(--proof86-secondary-bg);
+          border: 1px solid var(--proof86-divider);
           border-radius: 12px;
-          color: var(--primary-text-color);
+          color: var(--proof86-primary-text);
           cursor: pointer;
           display: flex;
           font: 600 13px var(--proof86-mono);
@@ -1592,13 +1568,13 @@ class Proof86InventoryCard extends HTMLElement {
           width: 9px;
         }
         .sheet-option small {
-          color: var(--secondary-text-color);
+          color: var(--proof86-secondary-text);
           font-size: 11px;
           margin-left: 8px;
         }
         .sheet-option.selected {
-          border-color: var(--primary-text-color);
-          box-shadow: inset 0 0 0 1px var(--primary-text-color);
+          border-color: var(--proof86-primary-text);
+          box-shadow: inset 0 0 0 1px var(--proof86-primary-text);
         }
         .sheet-option ha-icon { --mdc-icon-size: 19px; }
         .sr-only {

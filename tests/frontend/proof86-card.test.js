@@ -98,6 +98,7 @@ test("can force the card appearance independently of Home Assistant", () => {
 
   assert.equal(card._darkMode, true);
   assert.match(card.shadowRoot.innerHTML, /appearance-dark/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-primary-text: #f5f5f7/);
   assert.match(card.shadowRoot.innerHTML, /--category-color:#77b993/);
 });
 
@@ -124,13 +125,13 @@ test("renders the horizontal inventory canvas and touch actions", () => {
   assert.match(card.shadowRoot.innerHTML, /class="horizontal/);
   assert.match(card.shadowRoot.innerHTML, /class="bottles canvas"/);
   assert.match(card.shadowRoot.innerHTML, /data-panel="search"/);
-  assert.match(card.shadowRoot.innerHTML, /data-panel="filter"/);
   assert.match(card.shadowRoot.innerHTML, /data-panel="sort"/);
+  assert.doesNotMatch(card.shadowRoot.innerHTML, /data-panel="filter"/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-columns:2/);
   assert.doesNotMatch(card.shadowRoot.innerHTML, /action-summary/);
 });
 
-test("renders search, filter, and sort action sheets", () => {
+test("renders search and sort action sheets", () => {
   const card = createCard({ layout: "horizontal" });
   card._inventory = {
     bar: { name: "Home Bar" },
@@ -141,12 +142,6 @@ test("renders search, filter, and sort action sheets", () => {
   card._render();
   assert.match(card.shadowRoot.innerHTML, /Search your bar/);
   assert.match(card.shadowRoot.innerHTML, /panel-search-input/);
-
-  card._panel = "filter";
-  card._render();
-  assert.match(card.shadowRoot.innerHTML, /Filter bottles/);
-  assert.match(card.shadowRoot.innerHTML, /All categories/);
-  assert.match(card.shadowRoot.innerHTML, /data-category="gin"/);
 
   card._panel = "sort";
   card._render();
