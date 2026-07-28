@@ -6,13 +6,13 @@
     <title>86Proof Horizontal Card Preview</title>
     <style>
       :root {
-        --primary-text-color: #171717;
-        --secondary-text-color: #77736e;
-        --primary-background-color: #f6f3ed;
-        --secondary-background-color: #f6f3ed;
-        --card-background-color: #ffffff;
-        --divider-color: #e8e3dc;
-        --error-color: #d83b32;
+        --primary-text-color: #f5f5f7;
+        --secondary-text-color: #f5f5f7;
+        --primary-background-color: #0d0d13;
+        --secondary-background-color: #0d0d13;
+        --card-background-color: #17171f;
+        --divider-color: rgba(255, 255, 255, 0.12);
+        --error-color: #ff5147;
       }
       body {
         background:
@@ -75,9 +75,10 @@
       card.setConfig({
         title: "Inventory",
         layout: "horizontal",
-        appearance: "dark",
-        background_opacity: 20,
-        bottle_opacity: 65,
+        background_color: "#FFFFFF",
+        background_opacity: 10,
+        bottle_color: "#FFFFFF",
+        bottle_opacity: 10,
         horizontal_columns: "2",
         horizontal_density: "comfortable",
         horizontal_height: 400,
