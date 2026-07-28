@@ -19,7 +19,13 @@ global.customElements = {
   get: (tag) => registry.get(tag),
 };
 global.window = {
-  customCards: [],
+  customCards: [
+    {
+      type: "proof86-inventory-card",
+      name: "Stale 86Proof Inventory",
+      preview: true,
+    },
+  ],
   setTimeout,
   clearTimeout,
 };
@@ -41,6 +47,8 @@ test("registers a graphical editor form and useful defaults", () => {
   assert.ok(form.schema.some((field) => field.name === "max_height"));
   assert.equal(defaults.card_width, "wide");
   assert.equal(defaults.show_fullness_bars, true);
+  assert.equal(window.customCards.length, 1);
+  assert.equal(window.customCards[0].name, "86Proof Inventory");
   assert.equal(window.customCards[0].preview, false);
 });
 

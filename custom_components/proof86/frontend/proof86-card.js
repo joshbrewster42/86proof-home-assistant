@@ -926,11 +926,17 @@ if (!customElements.get(CARD_TAG)) {
 }
 
 window.customCards = window.customCards || [];
-if (!window.customCards.some((card) => card.type === CARD_TAG)) {
-  window.customCards.push({
-    type: CARD_TAG,
-    name: "86Proof Inventory",
-    description: "Browse and filter a shared 86Proof home bar inventory.",
-    preview: false,
-  });
+const cardMetadata = {
+  type: CARD_TAG,
+  name: "86Proof Inventory",
+  description: "Browse and filter a shared 86Proof home bar inventory.",
+  preview: false,
+};
+const registeredCard = window.customCards.find(
+  (card) => card.type === CARD_TAG
+);
+if (registeredCard) {
+  Object.assign(registeredCard, cardMetadata);
+} else {
+  window.customCards.push(cardMetadata);
 }
