@@ -58,11 +58,112 @@ test("registers a graphical editor form and useful defaults", () => {
   const defaults = InventoryCard.getStubConfig();
 
   assert.ok(form.schema.some((field) => field.name === "max_height"));
+  assert.ok(form.schema.some((field) => field.name === "layout"));
   assert.equal(defaults.card_width, "wide");
+  assert.equal(defaults.layout, "auto");
+  assert.equal(defaults.appearance, "auto");
+  assert.equal(defaults.background_opacity, 100);
+  assert.equal(defaults.bottle_opacity, 100);
+  assert.equal(defaults.horizontal_columns, "auto");
   assert.equal(defaults.show_fullness_bars, true);
   assert.equal(window.customCards.length, 1);
   assert.equal(window.customCards[0].name, "86Proof Inventory");
   assert.equal(window.customCards[0].preview, false);
+});
+
+test("applies configurable card and bottle transparency", () => {
+  const card = createCard({
+    layout: "horizontal",
+    background_opacity: 20,
+    bottle_opacity: 65,
+  });
+  card._inventory = {
+    bar: { name: "Home Bar" },
+    bottles: [{ name: "Sipsmith VJOP", category: "Gin", type: "Spirit" }],
+  };
+  card._render();
+
+  assert.match(card.shadowRoot.innerHTML, /--proof86-card-opacity:20%/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-opacity:65%/);
+  assert.match(card.shadowRoot.innerHTML, /color-mix\(/);
+});
+
+test("can force the card appearance independently of Home Assistant", () => {
+  const card = createCard({ layout: "horizontal", appearance: "dark" });
+  card._inventory = {
+    bar: { name: "Home Bar" },
+    bottles: [{ name: "Sipsmith VJOP", category: "Gin", type: "Spirit" }],
+  };
+  card._render();
+
+  assert.equal(card._darkMode, true);
+  assert.match(card.shadowRoot.innerHTML, /appearance-dark/);
+  assert.match(card.shadowRoot.innerHTML, /--category-color:#77b993/);
+});
+
+test("renders the horizontal inventory canvas and touch actions", () => {
+  const card = createCard({
+    layout: "horizontal",
+    horizontal_columns: "2",
+  });
+  card._inventory = {
+    bar: { name: "Home Bar" },
+    bottles: [
+      {
+        name: "Sipsmith VJOP",
+        category: "Gin",
+        type: "Spirit",
+        abv: 57.7,
+        size: 750,
+        fullness: "quarter",
+      },
+    ],
+  };
+  card._render();
+
+  assert.match(card.shadowRoot.innerHTML, /class="horizontal/);
+  assert.match(card.shadowRoot.innerHTML, /class="bottles canvas"/);
+  assert.match(card.shadowRoot.innerHTML, /data-panel="search"/);
+  assert.match(card.shadowRoot.innerHTML, /data-panel="filter"/);
+  assert.match(card.shadowRoot.innerHTML, /data-panel="sort"/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-columns:2/);
+  assert.doesNotMatch(card.shadowRoot.innerHTML, /action-summary/);
+});
+
+test("renders search, filter, and sort action sheets", () => {
+  const card = createCard({ layout: "horizontal" });
+  card._inventory = {
+    bar: { name: "Home Bar" },
+    bottles: [{ name: "Sipsmith VJOP", category: "Gin", type: "Spirit" }],
+  };
+
+  card._panel = "search";
+  card._render();
+  assert.match(card.shadowRoot.innerHTML, /Search your bar/);
+  assert.match(card.shadowRoot.innerHTML, /panel-search-input/);
+
+  card._panel = "filter";
+  card._render();
+  assert.match(card.shadowRoot.innerHTML, /Filter bottles/);
+  assert.match(card.shadowRoot.innerHTML, /All categories/);
+  assert.match(card.shadowRoot.innerHTML, /data-category="gin"/);
+
+  card._panel = "sort";
+  card._render();
+  assert.match(card.shadowRoot.innerHTML, /Sort bottles/);
+  assert.match(card.shadowRoot.innerHTML, /data-sort="fullness-desc"/);
+});
+
+test("automatic layout selects horizontal only for a wide card and viewport", () => {
+  const card = createCard({ layout: "auto" });
+  window.innerWidth = 960;
+  window.innerHeight = 480;
+
+  card._updateAutomaticLayout(760);
+  assert.equal(card._isHorizontal(), true);
+
+  card._updateAutomaticLayout(500);
+  assert.equal(card._isHorizontal(), false);
 });
 
 test("registers and sorts when Android locale data is unavailable", () => {
