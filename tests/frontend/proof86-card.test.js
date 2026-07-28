@@ -4,6 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const registry = new Map();
+const scheduledWindowTimers = [];
 
 global.HTMLElement = class {
   attachShadow() {
@@ -26,8 +27,11 @@ global.window = {
       preview: true,
     },
   ],
-  setTimeout,
-  clearTimeout,
+  setTimeout: (callback, delay) => {
+    scheduledWindowTimers.push({ callback, delay });
+    return scheduledWindowTimers.length;
+  },
+  clearTimeout: () => {},
 };
 
 const nativeIntl = global.Intl;
@@ -72,6 +76,15 @@ test("registers and sorts when Android locale data is unavailable", () => {
     card._filteredBottles().map((bottle) => bottle.name),
     ["alpha", "Zulu"],
   );
+});
+
+test("re-registers after Home Assistant replaces its startup registry", () => {
+  registry.clear();
+  assert.equal(registry.get("proof86-inventory-card"), undefined);
+
+  scheduledWindowTimers[0].callback();
+
+  assert.equal(registry.get("proof86-inventory-card"), InventoryCard);
 });
 
 test("returns the configured Sections-dashboard width", () => {

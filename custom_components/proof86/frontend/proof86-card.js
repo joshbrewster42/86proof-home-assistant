@@ -939,9 +939,31 @@ class Proof86InventoryCard extends HTMLElement {
   }
 }
 
-if (!customElements.get(CARD_TAG)) {
-  customElements.define(CARD_TAG, Proof86InventoryCard);
-}
+const registerCard = (reportError) => {
+  try {
+    if (!customElements.get(CARD_TAG)) {
+      customElements.define(CARD_TAG, Proof86InventoryCard);
+    }
+  } catch (error) {
+    if (reportError && window.console && window.console.error) {
+      window.console.error("Unable to register the 86Proof inventory card", error);
+    }
+  }
+};
+
+registerCard(false);
+
+// Extra integration modules are imported in parallel with Home Assistant's
+// frontend core. On some embedded WebViews, core initialization replaces the
+// element registry after this small module has already registered. Retry once
+// the larger frontend bundles have had time to finish.
+const registrationRetryDelays = [250, 1000, 3000];
+registrationRetryDelays.forEach((delay, index) => {
+  window.setTimeout(
+    () => registerCard(index === registrationRetryDelays.length - 1),
+    delay
+  );
+});
 
 window.customCards = window.customCards || [];
 const cardMetadata = {
