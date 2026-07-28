@@ -210,6 +210,32 @@ class Proof86InventoryCard extends HTMLElement {
                 },
               },
             },
+            { name: "chip_color", selector: { text: {} } },
+            {
+              name: "chip_opacity",
+              selector: {
+                number: {
+                  min: 0,
+                  max: 100,
+                  step: 5,
+                  mode: "slider",
+                  unit_of_measurement: "%",
+                },
+              },
+            },
+            { name: "button_color", selector: { text: {} } },
+            {
+              name: "button_opacity",
+              selector: {
+                number: {
+                  min: 0,
+                  max: 100,
+                  step: 5,
+                  mode: "slider",
+                  unit_of_measurement: "%",
+                },
+              },
+            },
           ],
         },
         {
@@ -294,6 +320,10 @@ class Proof86InventoryCard extends HTMLElement {
           background_opacity: "Card background alpha",
           bottle_color: "Bottle background hex",
           bottle_opacity: "Bottle background alpha",
+          chip_color: "Chip background hex",
+          chip_opacity: "Chip background alpha",
+          button_color: "Button background hex",
+          button_opacity: "Button background alpha",
           sort: "Initial sorting",
           card_width: "Preferred card width",
           horizontal_columns: "Bottle columns",
@@ -322,6 +352,10 @@ class Proof86InventoryCard extends HTMLElement {
             "Enter #RGB or #RRGGBB. Leave empty to use the Home Assistant theme.",
           bottle_color:
             "Enter #RGB or #RRGGBB. Leave empty to use the Home Assistant theme.",
+          chip_color:
+            "Controls unselected category chips. Enter #RGB or #RRGGBB.",
+          button_color:
+            "Controls the Search and Sort buttons. Enter #RGB or #RRGGBB.",
         };
         return helpers[schema.name];
       },
@@ -336,6 +370,10 @@ class Proof86InventoryCard extends HTMLElement {
       background_opacity: 100,
       bottle_color: "",
       bottle_opacity: 100,
+      chip_color: "",
+      chip_opacity: 100,
+      button_color: "",
+      button_opacity: 100,
       sort: "name-asc",
       card_width: "wide",
       horizontal_columns: "auto",
@@ -378,6 +416,10 @@ class Proof86InventoryCard extends HTMLElement {
         background_opacity: 100,
         bottle_color: "",
         bottle_opacity: 100,
+        chip_color: "",
+        chip_opacity: 100,
+        button_color: "",
+        button_opacity: 100,
         sort: "name-asc",
         card_width: "wide",
         horizontal_columns: "auto",
@@ -408,6 +450,20 @@ class Proof86InventoryCard extends HTMLElement {
             config.bottle_opacity == null ? 100 : Number(config.bottle_opacity)
           )
         ),
+        chip_opacity: Math.max(
+          0,
+          Math.min(
+            100,
+            config.chip_opacity == null ? 100 : Number(config.chip_opacity)
+          )
+        ),
+        button_opacity: Math.max(
+          0,
+          Math.min(
+            100,
+            config.button_opacity == null ? 100 : Number(config.button_opacity)
+          )
+        ),
         horizontal_height: Math.max(
           320,
           Math.min(720, Number(config.horizontal_height) || 400)
@@ -431,11 +487,19 @@ class Proof86InventoryCard extends HTMLElement {
       this._config.background_color
     );
     this._config.bottle_color = validHexColor(this._config.bottle_color);
+    this._config.chip_color = validHexColor(this._config.chip_color);
+    this._config.button_color = validHexColor(this._config.button_color);
     if (!Number.isFinite(this._config.background_opacity)) {
       this._config.background_opacity = 100;
     }
     if (!Number.isFinite(this._config.bottle_opacity)) {
       this._config.bottle_opacity = 100;
+    }
+    if (!Number.isFinite(this._config.chip_opacity)) {
+      this._config.chip_opacity = 100;
+    }
+    if (!Number.isFinite(this._config.button_opacity)) {
+      this._config.button_opacity = 100;
     }
     if (
       ["auto", "2", "3"].indexOf(this._config.horizontal_columns) === -1
@@ -787,14 +851,26 @@ class Proof86InventoryCard extends HTMLElement {
     const bottleOpacity = Number.isFinite(this._config.bottle_opacity)
       ? this._config.bottle_opacity
       : 100;
+    const chipOpacity = Number.isFinite(this._config.chip_opacity)
+      ? this._config.chip_opacity
+      : 100;
+    const buttonOpacity = Number.isFinite(this._config.button_opacity)
+      ? this._config.button_opacity
+      : 100;
     const backgroundColor = validHexColor(this._config.background_color);
     const bottleColor = validHexColor(this._config.bottle_color);
+    const chipColor = validHexColor(this._config.chip_color);
+    const buttonColor = validHexColor(this._config.button_color);
     const customColors = [
       backgroundColor
         ? `--proof86-card-color:${escapeHtml(backgroundColor)}`
         : "",
       bottleColor
         ? `--proof86-bottle-color:${escapeHtml(bottleColor)}`
+        : "",
+      chipColor ? `--proof86-chip-color:${escapeHtml(chipColor)}` : "",
+      buttonColor
+        ? `--proof86-button-color:${escapeHtml(buttonColor)}`
         : "",
     ]
       .filter(Boolean)
@@ -804,7 +880,7 @@ class Proof86InventoryCard extends HTMLElement {
       ${this._styles()}
       <ha-card
         class="${horizontal ? "horizontal" : "vertical"} ${density}"
-        style="--proof86-list-height:${maxHeight}px;--proof86-horizontal-height:${horizontalHeight}px;--proof86-columns:${columns};--proof86-card-opacity:${backgroundOpacity}%;--proof86-bottle-opacity:${bottleOpacity}%;${customColors}"
+        style="--proof86-list-height:${maxHeight}px;--proof86-horizontal-height:${horizontalHeight}px;--proof86-columns:${columns};--proof86-card-opacity:${backgroundOpacity}%;--proof86-bottle-opacity:${bottleOpacity}%;--proof86-chip-opacity:${chipOpacity}%;--proof86-button-opacity:${buttonOpacity}%;${customColors}"
       >
         <div class="header">
           <div>
@@ -1214,7 +1290,13 @@ class Proof86InventoryCard extends HTMLElement {
         .chips::-webkit-scrollbar { display: none; }
         .chip {
           align-items: center;
-          background: var(--proof86-surface);
+          background: var(--proof86-chip-color, var(--proof86-surface));
+          background: color-mix(
+            in srgb,
+            var(--proof86-chip-color, var(--proof86-surface))
+              var(--proof86-chip-opacity),
+            transparent
+          );
           border: 1px solid var(--proof86-divider);
           border-radius: 999px;
           color: var(--proof86-primary-text);
@@ -1394,7 +1476,13 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .action-button {
           align-items: center;
-          background: var(--proof86-surface);
+          background: var(--proof86-button-color, var(--proof86-surface));
+          background: color-mix(
+            in srgb,
+            var(--proof86-button-color, var(--proof86-surface))
+              var(--proof86-button-opacity),
+            transparent
+          );
           border: 1px solid var(--proof86-divider);
           border-radius: 11px;
           color: var(--proof86-primary-text);
