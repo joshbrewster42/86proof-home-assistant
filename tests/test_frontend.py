@@ -79,6 +79,9 @@ async def test_registers_card_for_modern_and_legacy_frontends(
         (hass, frontend_module.CARD_URL, False),
         (hass, frontend_module.CARD_URL, True),
     ]
-    assert len(hass.http.paths) == 1
+    assert len(hass.http.paths) == 2
     assert hass.http.paths[0].url_path == frontend_module.STATIC_URL
     assert Path(hass.http.paths[0].path).name == "frontend"
+    assert hass.http.paths[1].url_path == frontend_module.CARD_URL
+    assert Path(hass.http.paths[1].path).name == frontend_module.CARD_FILENAME
+    assert "0_4_3" in frontend_module.CARD_URL
