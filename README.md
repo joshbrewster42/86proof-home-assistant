@@ -26,8 +26,8 @@ a searchable inventory dashboard card, and these summary sensors:
 
 Add the **86Proof Inventory** card from Home Assistant's dashboard card picker.
 Its visual editor lets you change the title, initial sorting, scrollable list
-height, preferred Sections-dashboard width, and which controls or bottle
-details are visible. No YAML is required.
+height, preferred Sections-dashboard width, screen layout, and which controls
+or bottle details are visible. No YAML is required.
 
 In a Sections dashboard, choose a preferred width of 6, 9, or 12 columns (or
 the full section width) in the card editor. Home Assistant's normal card
@@ -51,6 +51,21 @@ The card includes a vertically scrollable bottle list, text search, horizontal
 category chips, and sorting by name or fullness. Bottle rows show category,
 ABV, estimated remaining volume, low-stock status, and a category-colored
 fullness bar.
+
+For landscape displays, the card also includes a horizontal inventory canvas
+with a touch-friendly two- or three-column bottle grid. Search, Filter, and
+Sort buttons open large in-card action sheets suitable for kiosk WebViews.
+Choose **Automatic**, **Vertical list**, or **Horizontal canvas** from the
+graphical card editor. Automatic selects the horizontal canvas when both the
+card and viewport are wide; either layout can be forced for a specific
+dashboard. Appearance can follow Home Assistant or be locked to the card's
+light or dark palette.
+
+The graphical editor also has separate 0–100% opacity sliders for the outer
+card background and individual bottle tiles. Both default to 100%, preserving
+the normal Home Assistant appearance. Existing `card_mod` styles remain
+compatible; an `!important` background declaration overrides the outer card's
+configured background.
 
 The list is 640 pixels tall by default. The visual editor can set it from 320
 to 1200 pixels. The same setting is available manually:

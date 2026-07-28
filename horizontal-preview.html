@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>86Proof Horizontal Card Preview</title>
+    <style>
+      :root {
+        --primary-text-color: #171717;
+        --secondary-text-color: #77736e;
+        --primary-background-color: #f6f3ed;
+        --secondary-background-color: #f6f3ed;
+        --card-background-color: #ffffff;
+        --divider-color: #e8e3dc;
+        --error-color: #d83b32;
+      }
+      body {
+        background:
+          radial-gradient(circle at 20% 20%, #50738d 0, transparent 38%),
+          radial-gradient(circle at 78% 70%, #a05268 0, transparent 42%),
+          #262b38;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 18px;
+      }
+      proof86-inventory-card {
+        display: block;
+        height: 400px;
+        width: 100%;
+      }
+    </style>
+    <script>
+      customElements.define(
+        "ha-card",
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: "open" }).innerHTML =
+              "<style>:host{display:block;border-radius:16px;height:100%;overflow:hidden}</style><slot></slot>";
+          }
+        }
+      );
+      customElements.define(
+        "ha-icon",
+        class extends HTMLElement {
+          connectedCallback() {
+            const icon = this.getAttribute("icon") || "";
+            const glyphs = {
+              "mdi:magnify": "⌕",
+              "mdi:filter-variant": "≡",
+              "mdi:sort": "↕",
+              "mdi:close": "×",
+              "mdi:check": "✓",
+              "mdi:close-circle": "×",
+              "mdi:sort-alphabetical-ascending": "A↓",
+              "mdi:sort-alphabetical-descending": "Z↓",
+              "mdi:sort-descending": "↓",
+              "mdi:sort-ascending": "↑",
+            };
+            this.textContent = glyphs[icon] || "•";
+          }
+        }
+      );
+      customElements.define(
+        "ha-circular-progress",
+        class extends HTMLElement {}
+      );
+      window.customCards = [];
+    </script>
+    <script src="custom_components/proof86/frontend/proof86-card.js"></script>
+  </head>
+  <body>
+    <proof86-inventory-card id="inventory"></proof86-inventory-card>
+    <script>
+      const card = document.getElementById("inventory");
+      card.setConfig({
+        title: "Inventory",
+        layout: "horizontal",
+        appearance: "dark",
+        background_opacity: 20,
+        bottle_opacity: 65,
+        horizontal_columns: "2",
+        horizontal_density: "comfortable",
+        horizontal_height: 400,
+        show_search: true,
+        show_category_chips: true,
+        show_abv: true,
+        show_remaining_volume: true,
+        show_fullness_bars: true,
+      });
+      card._inventory = {
+        bar: { name: "Unit 309" },
+        bottles: [
+          {
+            name: "Highland Park Cask Strength",
+            type: "Spirit",
+            category: "Scotch",
+            abv: 63.6,
+            size: 750,
+            fullness: "full",
+          },
+          {
+            name: "Sipsmith VJOP",
+            type: "Spirit",
+            category: "Gin",
+            abv: 57.7,
+            size: 750,
+            fullness: "quarter",
+          },
+          {
+            name: "Old Forester 1920",
+            type: "Spirit",
+            category: "Whiskey",
+            abv: 57.5,
+            size: 750,
+            fullness: "full",
+          },
+          {
+            name: "Smith & Cross Jamaican Rum",
+            type: "Spirit",
+            category: "Rum",
+            abv: 57,
+            size: 750,
+            fullness: "quarter",
+          },
+          {
+            name: "Green Chartreuse",
+            type: "Liqueur",
+            category: "Fruit",
+            abv: 55,
+            size: 1500,
+            fullness: "half",
+          },
+          {
+            name: "Pikesville Rye 110 Proof",
+            type: "Spirit",
+            category: "Whiskey",
+            abv: 55,
+            size: 750,
+            fullness: "three quarters",
+          },
+          {
+            name: "Plantation Trinidad 2009 Rum",
+            type: "Spirit",
+            category: "Rum",
+            abv: 51.8,
+            size: 750,
+            fullness: null,
+          },
+          {
+            name: "Del Maguey Chichicapa",
+            type: "Spirit",
+            category: "Mezcal",
+            abv: 48,
+            size: 750,
+            fullness: "half",
+          },
+        ],
+      };
+      card._render();
+    </script>
+  </body>
+</html>

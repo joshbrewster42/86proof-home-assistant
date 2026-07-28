@@ -152,10 +152,71 @@ class Proof86InventoryCard extends HTMLElement {
       { value: "wide", label: "Wide (12 columns)" },
       { value: "full", label: "Full section width" },
     ];
+    const layoutOptions = [
+      { value: "auto", label: "Automatic (recommended)" },
+      { value: "vertical", label: "Vertical list" },
+      { value: "horizontal", label: "Horizontal canvas" },
+    ];
+    const columnOptions = [
+      { value: "auto", label: "Automatic" },
+      { value: "2", label: "2 columns" },
+      { value: "3", label: "3 columns" },
+    ];
+    const densityOptions = [
+      { value: "comfortable", label: "Comfortable" },
+      { value: "compact", label: "Compact" },
+    ];
+    const appearanceOptions = [
+      { value: "auto", label: "Follow Home Assistant" },
+      { value: "light", label: "Light" },
+      { value: "dark", label: "Dark" },
+    ];
 
     return {
       schema: [
         { name: "title", selector: { text: {} } },
+        {
+          name: "layout",
+          selector: { select: { options: layoutOptions, mode: "dropdown" } },
+        },
+        {
+          name: "appearance",
+          selector: {
+            select: { options: appearanceOptions, mode: "dropdown" },
+          },
+        },
+        {
+          type: "expandable",
+          name: "",
+          title: "Transparency",
+          flatten: true,
+          schema: [
+            {
+              name: "background_opacity",
+              selector: {
+                number: {
+                  min: 0,
+                  max: 100,
+                  step: 5,
+                  mode: "slider",
+                  unit_of_measurement: "%",
+                },
+              },
+            },
+            {
+              name: "bottle_opacity",
+              selector: {
+                number: {
+                  min: 0,
+                  max: 100,
+                  step: 5,
+                  mode: "slider",
+                  unit_of_measurement: "%",
+                },
+              },
+            },
+          ],
+        },
         {
           type: "grid",
           name: "",
@@ -169,6 +230,38 @@ class Proof86InventoryCard extends HTMLElement {
             {
               name: "card_width",
               selector: { select: { options: widthOptions, mode: "dropdown" } },
+            },
+          ],
+        },
+        {
+          type: "expandable",
+          name: "",
+          title: "Horizontal layout",
+          flatten: true,
+          schema: [
+            {
+              name: "horizontal_columns",
+              selector: {
+                select: { options: columnOptions, mode: "dropdown" },
+              },
+            },
+            {
+              name: "horizontal_density",
+              selector: {
+                select: { options: densityOptions, mode: "dropdown" },
+              },
+            },
+            {
+              name: "horizontal_height",
+              selector: {
+                number: {
+                  min: 320,
+                  max: 720,
+                  step: 20,
+                  mode: "slider",
+                  unit_of_measurement: "px",
+                },
+              },
             },
           ],
         },
@@ -201,8 +294,15 @@ class Proof86InventoryCard extends HTMLElement {
       computeLabel: (schema) => {
         const labels = {
           title: "Card title",
+          layout: "Layout",
+          appearance: "Appearance",
+          background_opacity: "Card background",
+          bottle_opacity: "Bottle tiles",
           sort: "Initial sorting",
           card_width: "Preferred card width",
+          horizontal_columns: "Bottle columns",
+          horizontal_density: "Bottle spacing",
+          horizontal_height: "Horizontal card height",
           max_height: "Scrollable list height",
           show_search: "Search field",
           show_category_chips: "Category filters",
@@ -212,18 +312,34 @@ class Proof86InventoryCard extends HTMLElement {
         };
         return labels[schema.name];
       },
-      computeHelper: (schema) =>
-        schema.name === "card_width"
-          ? "Sets the default width in a Sections dashboard. You can also resize the card directly on the dashboard."
-          : undefined,
+      computeHelper: (schema) => {
+        const helpers = {
+          layout:
+            "Automatic uses the horizontal canvas on a wide card in a landscape viewport.",
+          card_width:
+            "Sets the default width in a Sections dashboard. You can also resize the card directly on the dashboard.",
+          horizontal_columns:
+            "Automatic uses two columns for readable bottle names on small landscape displays.",
+          horizontal_height:
+            "Sets the complete card height when the horizontal canvas is active.",
+        };
+        return helpers[schema.name];
+      },
     };
   }
 
   static getStubConfig() {
     return {
       title: "Inventory",
+      layout: "auto",
+      appearance: "auto",
+      background_opacity: 100,
+      bottle_opacity: 100,
       sort: "name-asc",
       card_width: "wide",
+      horizontal_columns: "auto",
+      horizontal_density: "comfortable",
+      horizontal_height: 400,
       max_height: 640,
       show_search: true,
       show_category_chips: true,
@@ -242,6 +358,9 @@ class Proof86InventoryCard extends HTMLElement {
     this._category = "all";
     this._sort = "name-asc";
     this._darkMode = false;
+    this._panel = null;
+    this._autoHorizontal = false;
+    this._resizeObserver = null;
     this._subscriptionRequested = false;
     this._subscriptionTimer = null;
   }
@@ -253,8 +372,15 @@ class Proof86InventoryCard extends HTMLElement {
     this._config = Object.assign(
       {
         title: "Inventory",
+        layout: "auto",
+        appearance: "auto",
+        background_opacity: 100,
+        bottle_opacity: 100,
         sort: "name-asc",
         card_width: "wide",
+        horizontal_columns: "auto",
+        horizontal_density: "comfortable",
+        horizontal_height: 400,
         show_search: true,
         show_category_chips: true,
         show_abv: true,
@@ -264,6 +390,26 @@ class Proof86InventoryCard extends HTMLElement {
       config,
       {
         max_height: Math.max(320, Math.min(1200, maxHeight || 640)),
+        background_opacity: Math.max(
+          0,
+          Math.min(
+            100,
+            config.background_opacity == null
+              ? 100
+              : Number(config.background_opacity)
+          )
+        ),
+        bottle_opacity: Math.max(
+          0,
+          Math.min(
+            100,
+            config.bottle_opacity == null ? 100 : Number(config.bottle_opacity)
+          )
+        ),
+        horizontal_height: Math.max(
+          320,
+          Math.min(720, Number(config.horizontal_height) || 400)
+        ),
       }
     );
     this._sort = [
@@ -274,14 +420,59 @@ class Proof86InventoryCard extends HTMLElement {
     ].indexOf(this._config.sort) !== -1
       ? this._config.sort
       : "name-asc";
+    if (
+      ["auto", "vertical", "horizontal"].indexOf(this._config.layout) === -1
+    ) {
+      this._config.layout = "auto";
+    }
+    if (["auto", "light", "dark"].indexOf(this._config.appearance) === -1) {
+      this._config.appearance = "auto";
+    }
+    if (!Number.isFinite(this._config.background_opacity)) {
+      this._config.background_opacity = 100;
+    }
+    if (!Number.isFinite(this._config.bottle_opacity)) {
+      this._config.bottle_opacity = 100;
+    }
+    if (
+      ["auto", "2", "3"].indexOf(this._config.horizontal_columns) === -1
+    ) {
+      this._config.horizontal_columns = "auto";
+    }
+    if (
+      ["comfortable", "compact"].indexOf(
+        this._config.horizontal_density
+      ) === -1
+    ) {
+      this._config.horizontal_density = "comfortable";
+    }
     if (!this._config.show_search) this._query = "";
     if (!this._config.show_category_chips) this._category = "all";
+    this._darkMode =
+      this._config.appearance === "dark" ||
+      (this._config.appearance === "auto" &&
+        Boolean(
+          this._hass && this._hass.themes && this._hass.themes.darkMode
+        ));
+    if (this._config.layout === "vertical") this._panel = null;
+    if (
+      this.isConnected &&
+      this.getBoundingClientRect &&
+      this._config.layout === "auto"
+    ) {
+      this._updateAutomaticLayout(this.getBoundingClientRect().width);
+    }
     this._render();
     this._ensureSubscription();
   }
 
   set hass(hass) {
-    const darkMode = Boolean(hass && hass.themes && hass.themes.darkMode);
+    const appearance =
+      (this._config && this._config.appearance) || "auto";
+    const darkMode =
+      appearance === "dark" ||
+      (appearance === "auto" &&
+        Boolean(hass && hass.themes && hass.themes.darkMode));
     const themeChanged = this._hass && darkMode !== this._darkMode;
     this._hass = hass;
     this._darkMode = darkMode;
@@ -292,10 +483,15 @@ class Proof86InventoryCard extends HTMLElement {
   connectedCallback() {
     this._render();
     this._ensureSubscription();
+    this._observeSize();
   }
 
   disconnectedCallback() {
     this._disposeSubscription();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
   }
 
   getCardSize() {
@@ -316,6 +512,50 @@ class Proof86InventoryCard extends HTMLElement {
       min_columns: 3,
       min_rows: 4,
     };
+  }
+
+  _observeSize() {
+    if (this._resizeObserver || typeof ResizeObserver === "undefined") return;
+    this._resizeObserver = new ResizeObserver((entries) => {
+      if (!entries || !entries.length) return;
+      this._updateAutomaticLayout(entries[0].contentRect.width);
+    });
+    this._resizeObserver.observe(this);
+  }
+
+  _updateAutomaticLayout(width) {
+    if (!this._config || this._config.layout !== "auto") return;
+    const viewportIsWide =
+      window.innerWidth &&
+      window.innerHeight &&
+      window.innerWidth > window.innerHeight * 1.2;
+    const horizontal = width >= 620 && Boolean(viewportIsWide);
+    if (horizontal === this._autoHorizontal) return;
+    this._autoHorizontal = horizontal;
+    this._panel = null;
+    this._render();
+  }
+
+  _isHorizontal() {
+    const layout = (this._config && this._config.layout) || "auto";
+    return layout === "horizontal" || (layout === "auto" && this._autoHorizontal);
+  }
+
+  _horizontalColumns() {
+    const configured =
+      (this._config && this._config.horizontal_columns) || "auto";
+    if (configured === "2" || configured === "3") return configured;
+    return "2";
+  }
+
+  _sortLabel() {
+    const labels = {
+      "name-asc": "Name A–Z",
+      "name-desc": "Name Z–A",
+      "fullness-desc": "Fullest",
+      "fullness-asc": "Emptiest",
+    };
+    return labels[this._sort] || labels["name-asc"];
   }
 
   _ensureSubscription() {
@@ -536,87 +776,251 @@ class Proof86InventoryCard extends HTMLElement {
       this._config && this._config.max_height != null
         ? this._config.max_height
         : 640;
+    const horizontalHeight =
+      this._config && this._config.horizontal_height != null
+        ? this._config.horizontal_height
+        : 400;
+    const horizontal = this._isHorizontal();
+    const density =
+      this._config.horizontal_density === "compact"
+        ? "density-compact"
+        : "density-comfortable";
+    const columns = this._horizontalColumns();
+    const backgroundOpacity = Number.isFinite(this._config.background_opacity)
+      ? this._config.background_opacity
+      : 100;
+    const bottleOpacity = Number.isFinite(this._config.bottle_opacity)
+      ? this._config.bottle_opacity
+      : 100;
+    const appearance =
+      this._config.appearance === "light"
+        ? "appearance-light"
+        : this._config.appearance === "dark"
+          ? "appearance-dark"
+          : "";
 
     this.shadowRoot.innerHTML = `
       ${this._styles()}
-      <ha-card style="--proof86-list-height:${maxHeight}px">
+      <ha-card
+        class="${horizontal ? "horizontal" : "vertical"} ${density} ${appearance}"
+        style="--proof86-list-height:${maxHeight}px;--proof86-horizontal-height:${horizontalHeight}px;--proof86-columns:${columns};--proof86-card-opacity:${backgroundOpacity}%;--proof86-bottle-opacity:${bottleOpacity}%"
+      >
         <div class="header">
           <div>
             <div class="eyebrow">${barName} <span>•</span> ${total} ${total === 1 ? "Bottle" : "Bottles"}</div>
             <h1>${title}</h1>
           </div>
-          <span class="header-icon" aria-hidden="true"></span>
-        </div>
-
-        ${
-          this._config.show_search
-            ? `<div class="search-row">
-                 <label class="search">
-                   <ha-icon icon="mdi:magnify"></ha-icon>
-                   <input
-                     type="search"
-                     aria-label="Search bottles"
-                     placeholder="Search your bar…"
-                     value="${escapeHtml(this._query)}"
-                   >
-                 </label>
-               </div>`
-            : ""
-        }
-
-        ${
-          this._config.show_category_chips
-            ? `<div class="chips" role="group" aria-label="Filter by category">
-                 <button
-                   class="chip ${this._category === "all" ? "selected" : ""}"
-                   data-category="all"
-                   aria-pressed="${this._category === "all"}"
-                 >All</button>
-                 ${categories
-                   .map(
-                     (category) => `
-                       <button
-                         class="chip ${this._category === category.value ? "selected" : ""}"
-                         data-category="${escapeHtml(category.value)}"
-                         aria-pressed="${this._category === category.value}"
-                       >
-                         <i style="background:${category.color}"></i>${escapeHtml(category.label)}
-                       </button>
-                     `
-                   )
-                   .join("")}
-               </div>`
-            : ""
-        }
-
-        <div class="list-tools">
-          <span>${filtered.length} ${filtered.length === 1 ? "bottle" : "bottles"}</span>
-          <label class="sort">
-            <span class="sr-only">Sort inventory</span>
-            <select class="sort-select" aria-label="Sort inventory">
-              <option value="name-asc" ${this._sort === "name-asc" ? "selected" : ""}>Name A–Z</option>
-              <option value="name-desc" ${this._sort === "name-desc" ? "selected" : ""}>Name Z–A</option>
-              <option value="fullness-desc" ${this._sort === "fullness-desc" ? "selected" : ""}>Fullest first</option>
-              <option value="fullness-asc" ${this._sort === "fullness-asc" ? "selected" : ""}>Emptiest first</option>
-            </select>
-            <ha-icon icon="mdi:chevron-down"></ha-icon>
-          </label>
-        </div>
-
-        <div class="bottles">
           ${
-            filtered.length
-              ? filtered.map((bottle) => this._bottleTemplate(bottle)).join("")
-              : `<div class="empty-state">
-                   <ha-icon icon="mdi:magnify"></ha-icon>
-                   <strong>No bottles found</strong>
-                   <span>Try a different search or category.</span>
-                 </div>`
+            horizontal
+              ? this._actionButtonsTemplate()
+              : `<span class="header-icon" aria-hidden="true"></span>`
           }
         </div>
+        ${
+          horizontal
+            ? this._horizontalContent(filtered, categories)
+            : this._verticalContent(filtered, categories)
+        }
+        ${horizontal ? this._panelTemplate(categories) : ""}
       </ha-card>
     `;
 
+    this._bindInteractions();
+  }
+
+  _chipsTemplate(categories) {
+    if (!this._config.show_category_chips) return "";
+    return `
+      <div class="chips" role="group" aria-label="Filter by category">
+        <button
+          class="chip ${this._category === "all" ? "selected" : ""}"
+          data-category="all"
+          aria-pressed="${this._category === "all"}"
+        >All</button>
+        ${categories
+          .map(
+            (category) => `
+              <button
+                class="chip ${this._category === category.value ? "selected" : ""}"
+                data-category="${escapeHtml(category.value)}"
+                aria-pressed="${this._category === category.value}"
+              >
+                <i style="background:${category.color}"></i>${escapeHtml(category.label)}
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  _bottlesTemplate(filtered) {
+    return filtered.length
+      ? filtered.map((bottle) => this._bottleTemplate(bottle)).join("")
+      : `<div class="empty-state">
+           <ha-icon icon="mdi:magnify"></ha-icon>
+           <strong>No bottles found</strong>
+           <span>Try a different search or category.</span>
+         </div>`;
+  }
+
+  _verticalContent(filtered, categories) {
+    return `
+      ${
+        this._config.show_search
+          ? `<div class="search-row">
+               <label class="search">
+                 <ha-icon icon="mdi:magnify"></ha-icon>
+                 <input
+                   type="search"
+                   aria-label="Search bottles"
+                   placeholder="Search your bar…"
+                   value="${escapeHtml(this._query)}"
+                 >
+               </label>
+             </div>`
+          : ""
+      }
+      ${this._chipsTemplate(categories)}
+      <div class="list-tools">
+        <span>${filtered.length} ${filtered.length === 1 ? "bottle" : "bottles"}</span>
+        <label class="sort">
+          <span class="sr-only">Sort inventory</span>
+          <select class="sort-select" aria-label="Sort inventory">
+            <option value="name-asc" ${this._sort === "name-asc" ? "selected" : ""}>Name A–Z</option>
+            <option value="name-desc" ${this._sort === "name-desc" ? "selected" : ""}>Name Z–A</option>
+            <option value="fullness-desc" ${this._sort === "fullness-desc" ? "selected" : ""}>Fullest first</option>
+            <option value="fullness-asc" ${this._sort === "fullness-asc" ? "selected" : ""}>Emptiest first</option>
+          </select>
+          <ha-icon icon="mdi:chevron-down"></ha-icon>
+        </label>
+      </div>
+      <div class="bottles">${this._bottlesTemplate(filtered)}</div>
+    `;
+  }
+
+  _horizontalContent(filtered, categories) {
+    return `
+      ${this._chipsTemplate(categories)}
+      <div class="bottles canvas">${this._bottlesTemplate(filtered)}</div>
+    `;
+  }
+
+  _actionButtonsTemplate() {
+    return `
+      <div class="action-buttons" aria-label="Inventory tools">
+        ${
+          this._config.show_search
+            ? `<button class="action-button ${this._query ? "active" : ""}" data-panel="search">
+                 <ha-icon icon="mdi:magnify"></ha-icon>
+                 <span>${this._query ? "Searching" : "Search"}</span>
+               </button>`
+            : ""
+        }
+        ${
+          this._config.show_category_chips
+            ? `<button class="action-button ${this._category !== "all" ? "active" : ""}" data-panel="filter">
+                 <ha-icon icon="mdi:filter-variant"></ha-icon>
+                 <span>${this._category === "all" ? "Filter" : "Filtered"}</span>
+               </button>`
+            : ""
+        }
+        <button class="action-button" data-panel="sort">
+          <ha-icon icon="mdi:sort"></ha-icon>
+          <span>${escapeHtml(this._sortLabel())}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  _panelTemplate(categories) {
+    if (!this._panel) return "";
+    let content = "";
+    if (this._panel === "search") {
+      content = `
+        <div class="sheet-title">
+          <div><ha-icon icon="mdi:magnify"></ha-icon><strong>Search your bar</strong></div>
+          <button class="close-panel" aria-label="Close search"><ha-icon icon="mdi:close"></ha-icon></button>
+        </div>
+        <label class="search sheet-search">
+          <ha-icon icon="mdi:magnify"></ha-icon>
+          <input
+            class="panel-search-input"
+            type="search"
+            aria-label="Search bottles"
+            placeholder="Bottle, category, style…"
+            value="${escapeHtml(this._query)}"
+          >
+          ${
+            this._query
+              ? `<button class="clear-search" aria-label="Clear search"><ha-icon icon="mdi:close-circle"></ha-icon></button>`
+              : ""
+          }
+        </label>
+      `;
+    } else if (this._panel === "filter") {
+      content = `
+        <div class="sheet-title">
+          <div><ha-icon icon="mdi:filter-variant"></ha-icon><strong>Filter bottles</strong></div>
+          <button class="close-panel" aria-label="Close filters"><ha-icon icon="mdi:close"></ha-icon></button>
+        </div>
+        <div class="sheet-options filter-options">
+          <button class="sheet-option ${this._category === "all" ? "selected" : ""}" data-category="all">
+            <span>All categories</span><small>${this._inventory.bottles.length}</small>
+          </button>
+          ${categories
+            .map(
+              (category) => `
+                <button class="sheet-option ${this._category === category.value ? "selected" : ""}" data-category="${escapeHtml(category.value)}">
+                  <span><i style="background:${category.color}"></i>${escapeHtml(category.label)}</span>
+                  <small>${category.count}</small>
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+      `;
+    } else {
+      const sortOptions = [
+        ["name-asc", "Name A–Z", "mdi:sort-alphabetical-ascending"],
+        ["name-desc", "Name Z–A", "mdi:sort-alphabetical-descending"],
+        ["fullness-desc", "Fullest first", "mdi:sort-descending"],
+        ["fullness-asc", "Emptiest first", "mdi:sort-ascending"],
+      ];
+      content = `
+        <div class="sheet-title">
+          <div><ha-icon icon="mdi:sort"></ha-icon><strong>Sort bottles</strong></div>
+          <button class="close-panel" aria-label="Close sorting"><ha-icon icon="mdi:close"></ha-icon></button>
+        </div>
+        <div class="sheet-options sort-options">
+          ${sortOptions
+            .map(
+              (option) => `
+                <button class="sheet-option ${this._sort === option[0] ? "selected" : ""}" data-sort="${option[0]}">
+                  <span><ha-icon icon="${option[2]}"></ha-icon>${option[1]}</span>
+                  ${this._sort === option[0] ? `<ha-icon icon="mdi:check"></ha-icon>` : ""}
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+      `;
+    }
+    return `
+      <div class="panel-backdrop" role="presentation">
+        <section class="action-sheet ${this._panel}-sheet" role="dialog" aria-modal="true">
+          ${content}
+        </section>
+      </div>
+    `;
+  }
+
+  _bindInteractions() {
+    this.shadowRoot.onkeydown = (event) => {
+      if (!this._panel || event.key !== "Escape") return;
+      this._panel = null;
+      this._render();
+    };
     const searchInput = this.shadowRoot.querySelector('input[type="search"]');
     if (searchInput) {
       searchInput.addEventListener("input", (event) => {
@@ -630,9 +1034,10 @@ class Proof86InventoryCard extends HTMLElement {
       });
     }
 
-    for (const chip of this.shadowRoot.querySelectorAll(".chip")) {
+    for (const chip of this.shadowRoot.querySelectorAll("[data-category]")) {
       chip.addEventListener("click", () => {
         this._category = chip.dataset.category;
+        if (this._panel === "filter") this._panel = null;
         this._render();
       });
     }
@@ -642,6 +1047,52 @@ class Proof86InventoryCard extends HTMLElement {
       sortSelect.addEventListener("change", (event) => {
         this._sort = event.target.value;
         this._render();
+      });
+    }
+
+    for (const button of this.shadowRoot.querySelectorAll("[data-panel]")) {
+      button.addEventListener("click", () => {
+        this._panel = button.dataset.panel;
+        this._render();
+        if (this._panel === "search") {
+          const input = this.shadowRoot.querySelector(".panel-search-input");
+          if (input) input.focus();
+        }
+      });
+    }
+
+    for (const button of this.shadowRoot.querySelectorAll("[data-sort]")) {
+      button.addEventListener("click", () => {
+        this._sort = button.dataset.sort;
+        this._panel = null;
+        this._render();
+      });
+    }
+
+    const closePanel = this.shadowRoot.querySelector(".close-panel");
+    if (closePanel) {
+      closePanel.addEventListener("click", () => {
+        this._panel = null;
+        this._render();
+      });
+    }
+
+    const backdrop = this.shadowRoot.querySelector(".panel-backdrop");
+    if (backdrop) {
+      backdrop.addEventListener("click", (event) => {
+        if (event.target !== backdrop) return;
+        this._panel = null;
+        this._render();
+      });
+    }
+
+    const clearSearch = this.shadowRoot.querySelector(".clear-search");
+    if (clearSearch) {
+      clearSearch.addEventListener("click", () => {
+        this._query = "";
+        this._render();
+        const input = this.shadowRoot.querySelector(".panel-search-input");
+        if (input) input.focus();
       });
     }
   }
@@ -708,7 +1159,32 @@ class Proof86InventoryCard extends HTMLElement {
         * { box-sizing: border-box; }
         ha-card {
           background: var(--secondary-background-color);
+          background: color-mix(
+            in srgb,
+            var(--secondary-background-color) var(--proof86-card-opacity),
+            transparent
+          );
           overflow: hidden;
+        }
+        ha-card.appearance-light {
+          --primary-text-color: #171717;
+          --secondary-text-color: #77736e;
+          --primary-background-color: #f6f3ed;
+          --secondary-background-color: #f6f3ed;
+          --card-background-color: #ffffff;
+          --divider-color: #e8e3dc;
+          --error-color: #d83b32;
+          color-scheme: light;
+        }
+        ha-card.appearance-dark {
+          --primary-text-color: #f5f5f7;
+          --secondary-text-color: #8c8c95;
+          --primary-background-color: #0d0d13;
+          --secondary-background-color: #0d0d13;
+          --card-background-color: #17171f;
+          --divider-color: #272730;
+          --error-color: #ff5147;
+          color-scheme: dark;
         }
         .header, .search, .list-tools, .sort, .state, .bottle-top {
           display: flex;
@@ -837,6 +1313,11 @@ class Proof86InventoryCard extends HTMLElement {
         }
         .bottle {
           background: var(--card-background-color);
+          background: color-mix(
+            in srgb,
+            var(--card-background-color) var(--proof86-bottle-opacity),
+            transparent
+          );
           border: 1px solid var(--divider-color);
           border-radius: 12px;
           flex: 0 0 auto;
@@ -916,6 +1397,210 @@ class Proof86InventoryCard extends HTMLElement {
         .empty-state ha-icon { --mdc-icon-size: 32px; }
         .empty-state strong { color: var(--primary-text-color); margin-top: 4px; }
         .empty-state span { font-size: 13px; }
+        .horizontal {
+          display: flex;
+          flex-direction: column;
+          height: var(--proof86-horizontal-height);
+          min-height: 320px;
+          position: relative;
+        }
+        .horizontal .header {
+          flex: 0 0 auto;
+          padding: 14px 18px 9px;
+        }
+        .horizontal .eyebrow {
+          font-size: 10px;
+          letter-spacing: 1.1px;
+        }
+        .horizontal h1 {
+          font-size: 23px;
+          margin-top: 3px;
+        }
+        .horizontal .header-icon {
+          height: 27px;
+          width: 27px;
+        }
+        .action-buttons {
+          display: flex;
+          flex: 0 1 auto;
+          gap: 7px;
+          justify-content: flex-end;
+          min-width: 0;
+        }
+        button {
+          -webkit-tap-highlight-color: transparent;
+        }
+        .action-button {
+          align-items: center;
+          background: var(--card-background-color);
+          border: 1px solid var(--divider-color);
+          border-radius: 11px;
+          color: var(--primary-text-color);
+          cursor: pointer;
+          display: flex;
+          font: 600 11px var(--proof86-mono);
+          gap: 6px;
+          height: 44px;
+          justify-content: center;
+          min-width: 92px;
+          padding: 0 12px;
+        }
+        .action-button ha-icon { --mdc-icon-size: 19px; }
+        .action-button.active {
+          border-color: var(--primary-text-color);
+          box-shadow: inset 0 0 0 1px var(--primary-text-color);
+        }
+        .horizontal .chips {
+          flex: 0 0 auto;
+          padding: 0 18px 8px;
+        }
+        .horizontal .chip {
+          min-height: 36px;
+          padding: 7px 12px;
+        }
+        .horizontal .bottles.canvas {
+          display: grid;
+          flex: 1 1 auto;
+          gap: 9px;
+          grid-auto-rows: max-content;
+          grid-template-columns: repeat(var(--proof86-columns), minmax(0, 1fr));
+          max-height: none;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 0 18px 16px;
+        }
+        .horizontal .empty-state {
+          grid-column: 1 / -1;
+        }
+        .horizontal .bottle {
+          min-width: 0;
+          padding: 11px 13px 10px;
+        }
+        .horizontal .bottle-name strong {
+          font-size: 13px;
+        }
+        .horizontal .bottle-name span,
+        .horizontal .remaining {
+          font-size: 10px;
+        }
+        .horizontal .meter {
+          margin-top: 9px;
+        }
+        .horizontal.density-compact .bottles.canvas {
+          gap: 7px;
+        }
+        .horizontal.density-compact .bottle {
+          padding: 8px 11px 7px;
+        }
+        .horizontal.density-compact .bottle-name span {
+          margin-top: 2px;
+        }
+        .horizontal.density-compact .meter {
+          height: 3px;
+          margin-top: 6px;
+        }
+        .panel-backdrop {
+          align-items: flex-end;
+          background: rgba(0, 0, 0, 0.48);
+          bottom: 0;
+          display: flex;
+          justify-content: center;
+          left: 0;
+          padding: 12px;
+          position: absolute;
+          right: 0;
+          top: 0;
+          z-index: 20;
+        }
+        .action-sheet {
+          background: var(--card-background-color);
+          border: 1px solid var(--divider-color);
+          border-radius: 18px;
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+          color: var(--primary-text-color);
+          max-height: calc(100% - 24px);
+          max-width: 640px;
+          overflow-y: auto;
+          padding: 15px;
+          width: 100%;
+        }
+        .search-sheet { align-self: center; }
+        .sheet-title, .sheet-title > div {
+          align-items: center;
+          display: flex;
+        }
+        .sheet-title {
+          justify-content: space-between;
+          margin-bottom: 13px;
+        }
+        .sheet-title > div {
+          font-size: 16px;
+          gap: 9px;
+        }
+        .sheet-title ha-icon { --mdc-icon-size: 21px; }
+        .close-panel, .clear-search {
+          align-items: center;
+          background: transparent;
+          border: 0;
+          color: var(--secondary-text-color);
+          cursor: pointer;
+          display: flex;
+          height: 44px;
+          justify-content: center;
+          padding: 0;
+          width: 44px;
+        }
+        .sheet-search {
+          position: relative;
+        }
+        .sheet-search input {
+          height: 52px;
+        }
+        .clear-search {
+          flex: 0 0 auto;
+          margin-right: -8px;
+        }
+        .sheet-options {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .sheet-option {
+          align-items: center;
+          background: var(--secondary-background-color);
+          border: 1px solid var(--divider-color);
+          border-radius: 12px;
+          color: var(--primary-text-color);
+          cursor: pointer;
+          display: flex;
+          font: 600 13px var(--proof86-mono);
+          justify-content: space-between;
+          min-height: 48px;
+          padding: 9px 13px;
+          text-align: left;
+        }
+        .sheet-option > span {
+          align-items: center;
+          display: flex;
+          gap: 8px;
+          min-width: 0;
+        }
+        .sheet-option i {
+          border-radius: 50%;
+          flex: 0 0 auto;
+          height: 9px;
+          width: 9px;
+        }
+        .sheet-option small {
+          color: var(--secondary-text-color);
+          font-size: 11px;
+          margin-left: 8px;
+        }
+        .sheet-option.selected {
+          border-color: var(--primary-text-color);
+          box-shadow: inset 0 0 0 1px var(--primary-text-color);
+        }
+        .sheet-option ha-icon { --mdc-icon-size: 19px; }
         .sr-only {
           height: 1px;
           margin: -1px;
@@ -933,6 +1618,13 @@ class Proof86InventoryCard extends HTMLElement {
           .bottles { padding: 0 16px 18px; }
           h1 { font-size: 27px; }
           .header-icon { display: none; }
+        }
+        @media (max-width: 720px) {
+          .horizontal .action-button {
+            min-width: 44px;
+            padding: 0 10px;
+          }
+          .horizontal .action-button span { display: none; }
         }
       </style>
     `;
