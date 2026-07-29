@@ -122,6 +122,21 @@ test("applies configurable card and bottle transparency", () => {
   assert.match(card.shadowRoot.innerHTML, /color-mix\(/);
 });
 
+test("bottle tiles consume the configured opacity variable", () => {
+  const source = fs.readFileSync(
+    path.join(
+      __dirname,
+      "../../custom_components/proof86/frontend/proof86-card.js"
+    ),
+    "utf8"
+  );
+  const bottleRule = source.match(/\.bottle \{([\s\S]*?)\n        \}/);
+
+  assert.ok(bottleRule);
+  assert.match(bottleRule[1], /var\(--proof86-bottle-opacity\)/);
+  assert.doesNotMatch(bottleRule[1], /\b94%/);
+});
+
 test("rejects invalid custom background colors", () => {
   const card = createCard({
     background_color: "white",
