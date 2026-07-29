@@ -50,7 +50,8 @@ entry_id: 01JEXAMPLE
 The card includes a vertically scrollable bottle list, text search, horizontal
 category chips, and sorting by name or fullness. Bottle rows show category,
 ABV, estimated remaining volume, low-stock status, and a category-colored
-fullness bar.
+fullness bar. Tap or select a bottle to open a detail sheet with its inventory
+summary and Julep blurb below the fullness bar.
 
 For landscape displays, the card also includes a horizontal inventory canvas
 with a touch-friendly two- or three-column bottle grid. Search and Sort
@@ -60,14 +61,15 @@ graphical card editor. Automatic selects the horizontal canvas when both the
 card and viewport are wide; either layout can be forced for a specific
 dashboard. Text and category colors follow the Home Assistant theme.
 
-The graphical editor accepts separate hex colors and 0–100% opacity values for
-the outer card, bottle tiles, unselected category chips, and Search/Sort
-buttons. Leaving a hex field empty uses the current Home Assistant surface
-color. Opacity values default to 100%, preserving the normal appearance. Each
-dashboard view can therefore tune its card independently for the background
-displayed on that device. Selected chips retain their high-contrast theme
-style. Existing `card_mod` styles remain compatible; an `!important`
-background declaration overrides the outer card's configured background.
+The graphical editor's **Colors and opacity** section accepts separate hex
+colors and 0–100% opacity values for the outer card, bottle tiles, bottle
+popup, unselected category chips, and Search/Sort buttons. Leaving a hex field
+empty uses the current Home Assistant surface color. Opacity values default to
+100%, preserving the normal appearance. Each dashboard view can therefore
+tune its card independently for the background displayed on that device.
+Selected chips retain their high-contrast theme style. Existing `card_mod`
+styles remain compatible; an `!important` background declaration overrides
+the outer card's configured background.
 
 The list is 640 pixels tall by default. The visual editor can set it from 320
 to 1200 pixels. The same setting is available manually:

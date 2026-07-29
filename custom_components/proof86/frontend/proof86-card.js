@@ -181,7 +181,7 @@ class Proof86InventoryCard extends HTMLElement {
         {
           type: "expandable",
           name: "",
-          title: "Transparency",
+          title: "Colors and opacity",
           flatten: true,
           schema: [
             { name: "background_color", selector: { text: {} } },
@@ -200,6 +200,19 @@ class Proof86InventoryCard extends HTMLElement {
             { name: "bottle_color", selector: { text: {} } },
             {
               name: "bottle_opacity",
+              selector: {
+                number: {
+                  min: 0,
+                  max: 100,
+                  step: 5,
+                  mode: "slider",
+                  unit_of_measurement: "%",
+                },
+              },
+            },
+            { name: "popup_color", selector: { text: {} } },
+            {
+              name: "popup_opacity",
               selector: {
                 number: {
                   min: 0,
@@ -316,14 +329,16 @@ class Proof86InventoryCard extends HTMLElement {
         const labels = {
           title: "Card title",
           layout: "Layout",
-          background_color: "Card background hex",
-          background_opacity: "Card background alpha",
-          bottle_color: "Bottle background hex",
-          bottle_opacity: "Bottle background alpha",
-          chip_color: "Chip background hex",
-          chip_opacity: "Chip background alpha",
-          button_color: "Button background hex",
-          button_opacity: "Button background alpha",
+          background_color: "Card background color",
+          background_opacity: "Card background opacity",
+          bottle_color: "Bottle background color",
+          bottle_opacity: "Bottle background opacity",
+          popup_color: "Popup background color",
+          popup_opacity: "Popup background opacity",
+          chip_color: "Chip background color",
+          chip_opacity: "Chip background opacity",
+          button_color: "Button background color",
+          button_opacity: "Button background opacity",
           sort: "Initial sorting",
           card_width: "Preferred card width",
           horizontal_columns: "Bottle columns",
@@ -352,6 +367,8 @@ class Proof86InventoryCard extends HTMLElement {
             "Enter #RGB or #RRGGBB. Leave empty to use the Home Assistant theme.",
           bottle_color:
             "Enter #RGB or #RRGGBB. Leave empty to use the Home Assistant theme.",
+          popup_color:
+            "Controls the enlarged bottle popup. Enter #RGB or #RRGGBB.",
           chip_color:
             "Controls unselected category chips. Enter #RGB or #RRGGBB.",
           button_color:
@@ -370,6 +387,8 @@ class Proof86InventoryCard extends HTMLElement {
       background_opacity: 100,
       bottle_color: "",
       bottle_opacity: 100,
+      popup_color: "",
+      popup_opacity: 100,
       chip_color: "",
       chip_opacity: 100,
       button_color: "",
@@ -398,6 +417,7 @@ class Proof86InventoryCard extends HTMLElement {
     this._sort = "name-asc";
     this._darkMode = false;
     this._panel = null;
+    this._selectedBottle = null;
     this._autoHorizontal = false;
     this._resizeObserver = null;
     this._subscriptionRequested = false;
@@ -416,6 +436,8 @@ class Proof86InventoryCard extends HTMLElement {
         background_opacity: 100,
         bottle_color: "",
         bottle_opacity: 100,
+        popup_color: "",
+        popup_opacity: 100,
         chip_color: "",
         chip_opacity: 100,
         button_color: "",
@@ -448,6 +470,13 @@ class Proof86InventoryCard extends HTMLElement {
           Math.min(
             100,
             config.bottle_opacity == null ? 100 : Number(config.bottle_opacity)
+          )
+        ),
+        popup_opacity: Math.max(
+          0,
+          Math.min(
+            100,
+            config.popup_opacity == null ? 100 : Number(config.popup_opacity)
           )
         ),
         chip_opacity: Math.max(
@@ -487,6 +516,7 @@ class Proof86InventoryCard extends HTMLElement {
       this._config.background_color
     );
     this._config.bottle_color = validHexColor(this._config.bottle_color);
+    this._config.popup_color = validHexColor(this._config.popup_color);
     this._config.chip_color = validHexColor(this._config.chip_color);
     this._config.button_color = validHexColor(this._config.button_color);
     if (!Number.isFinite(this._config.background_opacity)) {
@@ -494,6 +524,9 @@ class Proof86InventoryCard extends HTMLElement {
     }
     if (!Number.isFinite(this._config.bottle_opacity)) {
       this._config.bottle_opacity = 100;
+    }
+    if (!Number.isFinite(this._config.popup_opacity)) {
+      this._config.popup_opacity = 100;
     }
     if (!Number.isFinite(this._config.chip_opacity)) {
       this._config.chip_opacity = 100;
@@ -851,6 +884,9 @@ class Proof86InventoryCard extends HTMLElement {
     const bottleOpacity = Number.isFinite(this._config.bottle_opacity)
       ? this._config.bottle_opacity
       : 100;
+    const popupOpacity = Number.isFinite(this._config.popup_opacity)
+      ? this._config.popup_opacity
+      : 100;
     const chipOpacity = Number.isFinite(this._config.chip_opacity)
       ? this._config.chip_opacity
       : 100;
@@ -859,6 +895,7 @@ class Proof86InventoryCard extends HTMLElement {
       : 100;
     const backgroundColor = validHexColor(this._config.background_color);
     const bottleColor = validHexColor(this._config.bottle_color);
+    const popupColor = validHexColor(this._config.popup_color);
     const chipColor = validHexColor(this._config.chip_color);
     const buttonColor = validHexColor(this._config.button_color);
     const customColors = [
@@ -867,6 +904,9 @@ class Proof86InventoryCard extends HTMLElement {
         : "",
       bottleColor
         ? `--proof86-bottle-color:${escapeHtml(bottleColor)}`
+        : "",
+      popupColor
+        ? `--proof86-popup-color:${escapeHtml(popupColor)}`
         : "",
       chipColor ? `--proof86-chip-color:${escapeHtml(chipColor)}` : "",
       buttonColor
@@ -880,7 +920,7 @@ class Proof86InventoryCard extends HTMLElement {
       ${this._styles()}
       <ha-card
         class="${horizontal ? "horizontal" : "vertical"} ${density}"
-        style="--proof86-list-height:${maxHeight}px;--proof86-horizontal-height:${horizontalHeight}px;--proof86-columns:${columns};--proof86-card-opacity:${backgroundOpacity}%;--proof86-bottle-opacity:${bottleOpacity}%;--proof86-chip-opacity:${chipOpacity}%;--proof86-button-opacity:${buttonOpacity}%;${customColors}"
+        style="--proof86-list-height:${maxHeight}px;--proof86-horizontal-height:${horizontalHeight}px;--proof86-columns:${columns};--proof86-card-opacity:${backgroundOpacity}%;--proof86-bottle-opacity:${bottleOpacity}%;--proof86-popup-opacity:${popupOpacity}%;--proof86-chip-opacity:${chipOpacity}%;--proof86-button-opacity:${buttonOpacity}%;${customColors}"
       >
         <div class="header">
           <div>
@@ -899,6 +939,7 @@ class Proof86InventoryCard extends HTMLElement {
             : this._verticalContent(filtered, categories)
         }
         ${horizontal ? this._panelTemplate() : ""}
+        ${this._detailsTemplate()}
       </ha-card>
     `;
 
@@ -1064,9 +1105,16 @@ class Proof86InventoryCard extends HTMLElement {
 
   _bindInteractions() {
     this.shadowRoot.onkeydown = (event) => {
-      if (!this._panel || event.key !== "Escape") return;
-      this._panel = null;
-      this._render();
+      if (event.key !== "Escape") return;
+      if (this._selectedBottle) {
+        this._selectedBottle = null;
+        this._render();
+        return;
+      }
+      if (this._panel) {
+        this._panel = null;
+        this._render();
+      }
     };
     const searchInput = this.shadowRoot.querySelector('input[type="search"]');
     if (searchInput) {
@@ -1141,6 +1189,49 @@ class Proof86InventoryCard extends HTMLElement {
         if (input) input.focus();
       });
     }
+
+    for (const bottleCard of this.shadowRoot.querySelectorAll("[data-bottle-details]")) {
+      const openDetails = () => {
+        const bottleId = bottleCard.dataset.bottleId;
+        const bottles =
+          this._inventory && this._inventory.bottles
+            ? this._inventory.bottles
+            : [];
+        for (const bottle of bottles) {
+          if (String(bottle.id || "") === bottleId) {
+            this._selectedBottle = bottle;
+            break;
+          }
+        }
+        if (!this._selectedBottle) return;
+        this._render();
+        const close = this.shadowRoot.querySelector(".close-details");
+        if (close) close.focus();
+      };
+      bottleCard.addEventListener("click", openDetails);
+      bottleCard.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openDetails();
+      });
+    }
+
+    const closeDetails = this.shadowRoot.querySelector(".close-details");
+    if (closeDetails) {
+      closeDetails.addEventListener("click", () => {
+        this._selectedBottle = null;
+        this._render();
+      });
+    }
+
+    const detailsBackdrop = this.shadowRoot.querySelector(".details-backdrop");
+    if (detailsBackdrop) {
+      detailsBackdrop.addEventListener("click", (event) => {
+        if (event.target !== detailsBackdrop) return;
+        this._selectedBottle = null;
+        this._render();
+      });
+    }
   }
 
   _bottleTemplate(bottle) {
@@ -1163,7 +1254,15 @@ class Proof86InventoryCard extends HTMLElement {
     ].filter(Boolean);
 
     return `
-      <article class="bottle" style="--category-color:${color}">
+      <article
+        class="bottle"
+        style="--category-color:${color}"
+        data-bottle-details
+        data-bottle-id="${escapeHtml(String(bottle.id || ""))}"
+        role="button"
+        tabindex="0"
+        aria-label="Show details for ${escapeHtml(bottle.name || "Unnamed Bottle")}"
+      >
         <div class="bottle-top">
           <div class="bottle-name">
             <strong title="${escapeHtml(bottle.name || "Unnamed Bottle")}">${escapeHtml(bottle.name || "Unnamed Bottle")}</strong>
@@ -1195,6 +1294,78 @@ class Proof86InventoryCard extends HTMLElement {
     `;
   }
 
+  _detailsTemplate() {
+    const bottle = this._selectedBottle;
+    if (!bottle) return "";
+
+    const percent = fullnessPercent(bottle.fullness);
+    const category = this._rowCategory(bottle);
+    const color = this._categoryColor(bottle);
+    const isLow = percent != null && percent > 0 && percent <= 25;
+    const isEmpty = percent === 0;
+    const size = bottle.size == null ? null : Number(bottle.size);
+    const remaining =
+      Number.isFinite(size) && percent != null
+        ? Math.round(size * (percent / 100))
+        : null;
+    const abv = Number(bottle.abv);
+    const meta = [
+      category,
+      Number.isFinite(abv) && abv > 0 ? `${abv.toFixed(1)}%` : null,
+    ].filter(Boolean);
+
+    return `
+      <div class="details-backdrop" role="presentation">
+        <section
+          class="details-sheet"
+          style="--category-color:${color}"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bottle-details-title"
+        >
+          <button class="close-details" aria-label="Close bottle details">
+            <ha-icon icon="mdi:close"></ha-icon>
+          </button>
+          <div class="details-bottle-top">
+            <div class="details-bottle-name">
+              <strong id="bottle-details-title">${escapeHtml(bottle.name || "Unnamed Bottle")}</strong>
+              <span>${meta.map(escapeHtml).join(" · ")}</span>
+            </div>
+            <div class="details-bottle-status">
+              ${
+                isLow
+                  ? `<span class="stock low">Low</span>`
+                  : isEmpty
+                    ? `<span class="stock empty">Empty</span>`
+                    : ""
+              }
+              ${
+                remaining == null
+                  ? ""
+                  : `<span class="remaining">${remaining.toLocaleString()} mL</span>`
+              }
+            </div>
+          </div>
+          ${
+            percent != null
+              ? `<div class="meter details-meter" role="img" aria-label="Fullness: ${escapeHtml(fullnessLabel(bottle.fullness))}">
+                   <i style="width:${percent}%"></i>
+                 </div>`
+              : ""
+          }
+          ${
+            bottle.julep_blurb
+              ? `<div class="julep-notes">
+                   <span>Julep's notes</span>
+                   <p>${escapeHtml(bottle.julep_blurb)}</p>
+                 </div>`
+              : ""
+          }
+        </section>
+      </div>
+    `;
+  }
+
   _styles() {
     return `
       <style>
@@ -1222,6 +1393,7 @@ class Proof86InventoryCard extends HTMLElement {
             transparent
           );
           overflow: hidden;
+          position: relative;
         }
         .header, .search, .list-tools, .sort, .state, .bottle-top {
           display: flex;
@@ -1359,13 +1531,19 @@ class Proof86InventoryCard extends HTMLElement {
           background: color-mix(
             in srgb,
             var(--proof86-bottle-color, var(--proof86-surface))
-              var(--proof86-bottle-opacity),
+              94%,
             transparent
           );
           border: 1px solid var(--proof86-divider);
           border-radius: 12px;
+          cursor: pointer;
           flex: 0 0 auto;
+          outline: 0;
           padding: 14px 15px 13px;
+        }
+        .bottle:hover, .bottle:focus-visible {
+          border-color: var(--category-color);
+          box-shadow: inset 0 0 0 1px var(--category-color);
         }
         .bottle-top {
           align-items: flex-start;
@@ -1562,6 +1740,113 @@ class Proof86InventoryCard extends HTMLElement {
           top: 0;
           z-index: 20;
         }
+        .details-backdrop {
+          align-items: center;
+          background: rgba(0, 0, 0, 0.72);
+          bottom: 0;
+          display: flex;
+          justify-content: center;
+          left: 0;
+          padding: 18px;
+          position: absolute;
+          right: 0;
+          top: 0;
+          z-index: 30;
+        }
+        .details-sheet {
+          background: var(--proof86-popup-color, var(--proof86-surface));
+          background: color-mix(
+            in srgb,
+            var(--proof86-popup-color, var(--proof86-surface))
+              var(--proof86-popup-opacity),
+            transparent
+          );
+          border: 1px solid var(--proof86-divider);
+          border-radius: 14px;
+          box-shadow: 0 18px 52px rgba(0, 0, 0, 0.38);
+          color: var(--proof86-primary-text);
+          max-height: calc(100% - 20px);
+          max-width: 620px;
+          overflow-y: auto;
+          padding: 24px 24px 22px;
+          position: relative;
+          width: 100%;
+        }
+        .details-bottle-top {
+          align-items: flex-start;
+          display: flex;
+          gap: 20px;
+          justify-content: space-between;
+          padding-right: 52px;
+        }
+        .details-bottle-name {
+          min-width: 0;
+        }
+        .details-bottle-name strong {
+          color: var(--proof86-primary-text);
+          display: block;
+          font-size: 22px;
+          letter-spacing: 0.2px;
+          line-height: 1.2;
+          text-transform: uppercase;
+        }
+        .details-bottle-name span {
+          color: var(--proof86-secondary-text);
+          display: block;
+          font: 500 13px/1.3 var(--proof86-mono);
+          margin-top: 6px;
+        }
+        .details-bottle-status {
+          align-items: flex-end;
+          display: flex;
+          flex: 0 0 auto;
+          flex-direction: column;
+          gap: 5px;
+        }
+        .close-details {
+          align-items: center;
+          background: var(--proof86-secondary-bg);
+          border: 1px solid var(--proof86-divider);
+          border-radius: 50%;
+          color: var(--proof86-secondary-text);
+          cursor: pointer;
+          display: flex;
+          flex: 0 0 auto;
+          height: 44px;
+          justify-content: center;
+          padding: 0;
+          position: absolute;
+          right: 16px;
+          top: 16px;
+          width: 44px;
+        }
+        .close-details:focus-visible {
+          border-color: var(--category-color);
+          outline: 2px solid var(--category-color);
+          outline-offset: 2px;
+        }
+        .details-meter {
+          height: 6px;
+          margin-top: 18px;
+        }
+        .julep-notes span {
+          color: var(--proof86-secondary-text);
+          display: block;
+          font: 600 10px/1.3 var(--proof86-mono);
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+        .julep-notes {
+          border-top: 1px solid var(--proof86-divider);
+          margin-top: 20px;
+          padding-top: 18px;
+        }
+        .julep-notes p {
+          font-size: 15px;
+          line-height: 1.5;
+          margin: 7px 0 0;
+          white-space: pre-line;
+        }
         .action-sheet {
           background: var(--proof86-surface);
           border: 1px solid var(--proof86-divider);
@@ -1668,6 +1953,17 @@ class Proof86InventoryCard extends HTMLElement {
           .bottles { padding: 0 16px 18px; }
           h1 { font-size: 27px; }
           .header-icon { display: none; }
+          .details-backdrop {
+            align-items: flex-end;
+            padding: 10px;
+          }
+          .details-sheet {
+            border-radius: 14px;
+            max-height: calc(100% - 10px);
+            padding: 20px 18px 18px;
+          }
+          .details-bottle-top { padding-right: 48px; }
+          .details-bottle-name strong { font-size: 18px; }
         }
         @media (max-width: 720px) {
           .horizontal .action-button {
