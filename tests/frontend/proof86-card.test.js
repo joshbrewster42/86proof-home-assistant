@@ -63,12 +63,27 @@ test("registers a graphical editor form and useful defaults", () => {
   assert.equal(defaults.layout, "auto");
   assert.equal(defaults.background_color, "");
   assert.equal(defaults.bottle_color, "");
+  assert.equal(defaults.popup_color, "");
   assert.equal(defaults.chip_color, "");
   assert.equal(defaults.button_color, "");
   assert.equal(defaults.background_opacity, 100);
   assert.equal(defaults.bottle_opacity, 100);
+  assert.equal(defaults.popup_opacity, 100);
   assert.equal(defaults.horizontal_columns, "auto");
   assert.equal(defaults.show_fullness_bars, true);
+  assert.ok(
+    form.schema.some(
+      (field) =>
+        field.type === "expandable" && field.title === "Colors and opacity"
+    )
+  );
+  assert.ok(
+    form.schema.some(
+      (field) =>
+        field.schema &&
+        field.schema.some((setting) => setting.name === "popup_color")
+    )
+  );
   assert.equal(window.customCards.length, 1);
   assert.equal(window.customCards[0].name, "86Proof Inventory");
   assert.equal(window.customCards[0].preview, false);
@@ -81,6 +96,8 @@ test("applies configurable card and bottle transparency", () => {
     background_opacity: 20,
     bottle_color: "#17171F",
     bottle_opacity: 65,
+    popup_color: "#21212A",
+    popup_opacity: 90,
     chip_color: "#FFF",
     chip_opacity: 15,
     button_color: "#FFF",
@@ -94,8 +111,10 @@ test("applies configurable card and bottle transparency", () => {
 
   assert.match(card.shadowRoot.innerHTML, /--proof86-card-opacity:20%/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-opacity:65%/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-popup-opacity:90%/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-card-color:#FFF/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-bottle-color:#17171F/);
+  assert.match(card.shadowRoot.innerHTML, /--proof86-popup-color:#21212A/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-chip-color:#FFF/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-chip-opacity:15%/);
   assert.match(card.shadowRoot.innerHTML, /--proof86-button-color:#FFF/);
@@ -107,12 +126,14 @@ test("rejects invalid custom background colors", () => {
   const card = createCard({
     background_color: "white",
     bottle_color: "#12345; background:red",
+    popup_color: "rgb(0, 0, 0)",
     chip_color: "transparent",
     button_color: "#12",
   });
 
   assert.equal(card._config.background_color, "");
   assert.equal(card._config.bottle_color, "");
+  assert.equal(card._config.popup_color, "");
   assert.equal(card._config.chip_color, "");
   assert.equal(card._config.button_color, "");
 });
@@ -272,6 +293,54 @@ test("visual visibility settings remove optional bottle details", () => {
   assert.doesNotMatch(bottle, /50\.0%/);
   assert.doesNotMatch(bottle, /mL</);
   assert.doesNotMatch(bottle, /class="meter"/);
+});
+
+test("bottle tiles expose accessible detail actions", () => {
+  const card = createCard();
+  const bottle = card._bottleTemplate({
+    id: "bombay-sapphire",
+    name: "Bombay Sapphire Gin",
+    category: "Gin",
+    type: "Spirit",
+  });
+
+  assert.match(bottle, /data-bottle-details/);
+  assert.match(bottle, /data-bottle-id="bombay-sapphire"/);
+  assert.match(bottle, /role="button"/);
+  assert.match(bottle, /tabindex="0"/);
+  assert.match(bottle, /aria-label="Show details for Bombay Sapphire Gin"/);
+});
+
+test("renders an enlarged bottle tile with Julep's notes below the fill line", () => {
+  const card = createCard();
+  card._selectedBottle = {
+    id: "bombay-sapphire",
+    name: "Bombay Sapphire Gin",
+    type: "Spirit",
+    category: "Gin",
+    style: "London Dry",
+    abv: 47,
+    size: 750,
+    fullness: "half",
+    notes: "Top shelf",
+    julep_blurb: "Bright citrus & juniper.",
+    updated_at: "2026-07-28T20:30:00Z",
+  };
+
+  const details = card._detailsTemplate();
+
+  assert.match(details, /role="dialog"/);
+  assert.match(details, /Bombay Sapphire Gin/);
+  assert.match(details, /Gin · 47\.0%/);
+  assert.match(details, /47\.0%/);
+  assert.match(details, /375 mL/);
+  assert.match(details, /class="meter details-meter"/);
+  assert.match(details, /Fullness: ½/);
+  assert.match(details, /Julep's notes/);
+  assert.match(details, /Bright citrus &amp; juniper\./);
+  assert.ok(details.indexOf("details-meter") < details.indexOf("julep-notes"));
+  assert.doesNotMatch(details, /detail-facts/);
+  assert.doesNotMatch(details, /Top shelf/);
 });
 
 test("renders the bundled custom bottle header icon", () => {
