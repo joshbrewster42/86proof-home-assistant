@@ -1531,7 +1531,7 @@ class Proof86InventoryCard extends HTMLElement {
           background: color-mix(
             in srgb,
             var(--proof86-bottle-color, var(--proof86-surface))
-              94%,
+              var(--proof86-bottle-opacity),
             transparent
           );
           border: 1px solid var(--proof86-divider);
