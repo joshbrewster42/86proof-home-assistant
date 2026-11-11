@@ -82,6 +82,7 @@ class Inventory:
         """Return the low-stock and empty bottles, empty ones first, then by name."""
         return [
             {
+                "id": bottle.id,
                 "name": bottle.name,
                 "fullness": bottle.fullness,
                 "category": bottle.category,
