@@ -82,6 +82,10 @@ def test_inventory_summaries() -> None:
     assert inventory.empty_bottle_count == 1
     assert inventory.low_stock_bottle_count == 2
     assert inventory.category_count == 2
+    assert inventory.low_stock_bottles == [
+        {"name": "Two", "fullness": "empty", "category": " bourbon ", "empty": True},
+        {"name": "Three", "fullness": "Quarter", "category": "Gin", "empty": False},
+    ]
 
 
 def test_inventory_serialization_excludes_owner_and_uses_iso_dates() -> None:
