@@ -83,8 +83,20 @@ def test_inventory_summaries() -> None:
     assert inventory.low_stock_bottle_count == 2
     assert inventory.category_count == 2
     assert inventory.low_stock_bottles == [
-        {"name": "Two", "fullness": "empty", "category": " bourbon ", "empty": True},
-        {"name": "Three", "fullness": "Quarter", "category": "Gin", "empty": False},
+        {
+            "id": "2",
+            "name": "Two",
+            "fullness": "empty",
+            "category": " bourbon ",
+            "empty": True,
+        },
+        {
+            "id": "3",
+            "name": "Three",
+            "fullness": "Quarter",
+            "category": "Gin",
+            "empty": False,
+        },
     ]
 
 
