@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -26,6 +27,7 @@ class Proof86SensorEntityDescription(SensorEntityDescription):
     """Describe an 86Proof summary sensor."""
 
     value_fn: Callable[[Inventory], StateType]
+    attributes_fn: Callable[[Inventory], dict[str, Any]] | None = None
 
 
 SENSORS: tuple[Proof86SensorEntityDescription, ...] = (
@@ -52,6 +54,7 @@ SENSORS: tuple[Proof86SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:liquid-spot",
         value_fn=lambda inventory: inventory.low_stock_bottle_count,
+        attributes_fn=lambda inventory: {"bottles": inventory.low_stock_bottles},
     ),
     Proof86SensorEntityDescription(
         key="category_count",
@@ -86,6 +89,8 @@ class Proof86Sensor(Proof86Entity, SensorEntity):
     """A summary sensor for a shared 86Proof bar."""
 
     entity_description: Proof86SensorEntityDescription
+    # The bottle list changes with every pour, so it stays out of the history database
+    _unrecorded_attributes = frozenset({"bottles"})
 
     def __init__(
         self,
@@ -108,3 +113,10 @@ class Proof86Sensor(Proof86Entity, SensorEntity):
     def native_value(self) -> StateType:
         """Return the current summary value."""
         return self.entity_description.value_fn(self.coordinator.data)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the bottle list for the low-stock sensor."""
+        if self.entity_description.attributes_fn is None:
+            return None
+        return self.entity_description.attributes_fn(self.coordinator.data)

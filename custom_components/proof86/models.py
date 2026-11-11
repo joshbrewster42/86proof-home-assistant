@@ -78,6 +78,22 @@ class Inventory:
         return sum(bottle.is_low_stock for bottle in self.bottles)
 
     @property
+    def low_stock_bottles(self) -> list[dict[str, Any]]:
+        """Return the low-stock and empty bottles, empty ones first, then by name."""
+        return [
+            {
+                "name": bottle.name,
+                "fullness": bottle.fullness,
+                "category": bottle.category,
+                "empty": bottle.is_empty,
+            }
+            for bottle in sorted(
+                (bottle for bottle in self.bottles if bottle.is_low_stock),
+                key=lambda bottle: (not bottle.is_empty, bottle.name.casefold()),
+            )
+        ]
+
+    @property
     def category_count(self) -> int:
         """Return the number of non-empty categories."""
         return len(
