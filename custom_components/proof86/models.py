@@ -95,6 +95,26 @@ class Inventory:
         ]
 
     @property
+    def all_bottles(self) -> list[dict[str, Any]]:
+        """Return every bottle by name, with the fields a wall panel shows."""
+        return [
+            {
+                "id": bottle.id,
+                "name": bottle.name,
+                "type": bottle.type,
+                "category": bottle.category,
+                "style": bottle.style,
+                "abv": bottle.abv,
+                "size": bottle.size,
+                "fullness": bottle.fullness,
+                "empty": bottle.is_empty,
+                "low": bottle.is_low_stock,
+                "description": bottle.julep_blurb,
+            }
+            for bottle in sorted(self.bottles, key=lambda bottle: bottle.name.casefold())
+        ]
+
+    @property
     def category_count(self) -> int:
         """Return the number of non-empty categories."""
         return len(

@@ -121,3 +121,29 @@ def test_inventory_serialization_excludes_owner_and_uses_iso_dates() -> None:
     assert "owner_uid" not in serialized["bar"]
     assert serialized["bottles"][0]["updated_at"] == fetched_at.isoformat()
     assert serialized["fetched_at"] == fetched_at.isoformat()
+
+
+def test_all_bottles_sorted_by_name_with_panel_fields() -> None:
+    inventory = Inventory(
+        bar=Bar(id="bar-1", name="Home Bar"),
+        bottles=(
+            Bottle(id="b", name="rittenhouse", type="Whiskey", category="Rye", fullness="Full"),
+            Bottle(id="a", name="Aperol", type="Liqueur", fullness="86d", abv=11.0, size=750),
+        ),
+        fetched_at=datetime(2026, 11, 17, tzinfo=UTC),
+    )
+
+    assert [bottle["id"] for bottle in inventory.all_bottles] == ["a", "b"]
+    assert inventory.all_bottles[0] == {
+        "id": "a",
+        "name": "Aperol",
+        "type": "Liqueur",
+        "category": None,
+        "style": None,
+        "abv": 11.0,
+        "size": 750,
+        "fullness": "86d",
+        "empty": True,
+        "low": True,
+        "description": None,
+    }

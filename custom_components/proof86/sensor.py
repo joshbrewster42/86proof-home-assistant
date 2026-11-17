@@ -38,6 +38,7 @@ SENSORS: tuple[Proof86SensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:bottle-tonic",
         value_fn=lambda inventory: inventory.bottle_count,
+        attributes_fn=lambda inventory: {"bottles": inventory.all_bottles},
     ),
     Proof86SensorEntityDescription(
         key="empty_bottle_count",
@@ -116,7 +117,7 @@ class Proof86Sensor(Proof86Entity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return the bottle list for the low-stock sensor."""
+        """Return the bottle list (all bottles, or the low-stock ones)."""
         if self.entity_description.attributes_fn is None:
             return None
         return self.entity_description.attributes_fn(self.coordinator.data)
