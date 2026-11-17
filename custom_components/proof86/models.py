@@ -9,6 +9,66 @@ from typing import Any
 EMPTY_FULLNESS_VALUES = frozenset({"0%", "86d", "86'd", "empty"})
 LOW_FULLNESS_VALUES = frozenset({"1/4", "25%", "almost empty", "low", "quarter", "¼"})
 
+# Category colors (day, night), the same as the inventory card (frontend/proof86-card.js)
+CATEGORY_COLORS: dict[str, tuple[str, str]] = {
+    "whiskey": ("#c1742e", "#c47a2e"),
+    "scotch": ("#d9a441", "#e8bc5f"),
+    "vodka": ("#5ba4e6", "#7bbaf0"),
+    "gin": ("#5ca17c", "#77b993"),
+    "rum": ("#8b572a", "#a87348"),
+    "tequila": ("#b7b46a", "#a7a25c"),
+    "mezcal": ("#7a8b71", "#95a68c"),
+    "brandy": ("#ad6b3a", "#c88858"),
+    "cognac": ("#c06030", "#d87d52"),
+    "asian": ("#6c7b9c", "#8a98b8"),
+    "other spirit": ("#a0a0a0", "#b8b8b8"),
+    "red": ("#7a1f1f", "#a53b3b"),
+    "white": ("#e3c66e", "#edd88a"),
+    "rosé": ("#e9a8a6", "#f2c0be"),
+    "sparkling": ("#e4d5b7", "#efe5ce"),
+    "fortified": ("#c59b3a", "#d9b358"),
+    "fruit": ("#c15d7c", "#d67c98"),
+    "herbal / botanical": ("#5d814d", "#729c63"),
+    "nut / seed": ("#7b563a", "#9c7858"),
+    "coffee / chocolate": ("#5a3a2e", "#7d5a4a"),
+    "cream": ("#dcc7a1", "#e8d9bb"),
+    "vermouth": ("#892e33", "#b0494f"),
+    "amaro": ("#c9562c", "#e47145"),
+    "other apéritifs": ("#d1a642", "#e6c05e"),
+    "aromatic": ("#6b3520", "#9a5540"),
+    "citrus": ("#e07c35", "#f2a86c"),
+    "herbal / spice": ("#437d68", "#5d9e86"),
+    "specialty": ("#5a3a2e", "#7d5a4a"),
+    "syrups": ("#b97239", "#d38d56"),
+    "shrubs": ("#c15061", "#d46e7c"),
+    "juices / purees": ("#e3b045", "#f0c566"),
+    "sodas / tonics": ("#8dc6dd", "#a8d8eb"),
+    "bitters (alternative)": ("#678b6b", "#85a886"),
+    "garnishes": ("#ce8aae", "#dda6c4"),
+    "creams / dairy": ("#eadbc0", "#f2ead6"),
+    "other mixer": ("#8f8c86", "#b0aba5"),
+    "non-alcoholic": ("#6c7b9c", "#8a98b8"),
+}
+
+TYPE_COLORS: dict[str, tuple[str, str]] = {
+    "spirit": ("#c1742e", "#c47a2e"),
+    "wine": ("#7a1f1f", "#a53b3b"),
+    "liqueur": ("#788e55", "#8fa768"),
+    "apéritif/digestif": ("#e07c35", "#f2a86c"),
+    "apéritif / digestif": ("#e07c35", "#f2a86c"),
+    "aperitif/digestif": ("#e07c35", "#f2a86c"),
+    "aperitif / digestif": ("#e07c35", "#f2a86c"),
+    "bitters": ("#a0462d", "#ba5535"),
+    "mixer": ("#8dc6dd", "#a8d8eb"),
+    "mixers": ("#8dc6dd", "#a8d8eb"),
+    "mixers & ingredients": ("#8dc6dd", "#a8d8eb"),
+    "non-alcoholic": ("#6c7b9c", "#8a98b8"),
+}
+
+DEFAULT_COLORS = ("#8f8c86", "#b0aba5")
+# Types the card groups by type instead of by category
+GROUP_BY_TYPE = frozenset({"Liqueur", "Bitters", "Mixer"})
+
 
 def _normalized_fullness(value: str | None) -> str:
     """Normalize a fullness label for summary calculations."""
@@ -37,6 +97,27 @@ class Bottle:
     def is_empty(self) -> bool:
         """Return whether the fullness label represents an empty bottle."""
         return _normalized_fullness(self.fullness) in EMPTY_FULLNESS_VALUES
+
+    @property
+    def group(self) -> str:
+        """Return the group the inventory card files this bottle under."""
+        bottle_type = (self.type or "").strip()
+        if bottle_type in GROUP_BY_TYPE:
+            return bottle_type
+        return (self.category or bottle_type or "Other").strip()
+
+    @property
+    def colors(self) -> tuple[str, str]:
+        """Return the bottle's (day, night) color, as the inventory card picks it."""
+        category = _normalized_fullness(self.category)
+        bottle_type = _normalized_fullness(self.type)
+        return (
+            CATEGORY_COLORS.get(category)
+            or CATEGORY_COLORS.get(bottle_type)
+            or TYPE_COLORS.get(bottle_type)
+            or TYPE_COLORS.get(category)
+            or DEFAULT_COLORS
+        )
 
     @property
     def is_low_stock(self) -> bool:
@@ -110,6 +191,9 @@ class Inventory:
                 "empty": bottle.is_empty,
                 "low": bottle.is_low_stock,
                 "description": bottle.julep_blurb,
+                "group": bottle.group,
+                "color": bottle.colors[0],
+                "color_dark": bottle.colors[1],
             }
             for bottle in sorted(self.bottles, key=lambda bottle: bottle.name.casefold())
         ]

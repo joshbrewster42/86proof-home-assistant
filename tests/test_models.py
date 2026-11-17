@@ -146,4 +146,16 @@ def test_all_bottles_sorted_by_name_with_panel_fields() -> None:
         "empty": True,
         "low": True,
         "description": None,
+        "group": "Liqueur",
+        "color": "#788e55",
+        "color_dark": "#8fa768",
     }
+    assert inventory.all_bottles[1]["group"] == "Rye"
+    assert inventory.all_bottles[1]["color"] == "#c1742e"  # falls back to the Whiskey type
+
+
+def test_bottle_colors_match_the_card() -> None:
+    gin = Bottle(id="g", name="Gin", type="Spirit", category="Gin")
+    vermouth = Bottle(id="v", name="Dolin", type="Apéritif/Digestif", category="Vermouth")
+    assert gin.group == "Gin" and gin.colors == ("#5ca17c", "#77b993")
+    assert vermouth.group == "Vermouth" and vermouth.colors == ("#892e33", "#b0494f")
